@@ -37,8 +37,18 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
+// Serve static files
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Serve static files from the React app
+const staticPath = path.join(__dirname, "dist"); // or wherever your build is
+app.use(express.static(staticPath));
+
+// The "catchall" handler: for any request that doesn't match an API route
+app.get("*", (req, res) => {
+  res.sendFile(path.join(staticPath, "index.html"));
+});
 
 const uploadDir =
   process.env.UPLOAD_DIR ||

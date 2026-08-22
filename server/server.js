@@ -16,8 +16,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://tkprotf.onrender.com",        // ← Your actual frontend URL
-  "https://tkprotf-1.onrender.com",
+  "https://tkprotf.onrender.com",        // ← Backend
+  "https://tkprotf-1.onrender.com",      // ← Frontend
 ];
 
 app.use(

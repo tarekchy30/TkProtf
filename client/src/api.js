@@ -1,7 +1,7 @@
 // Use relative URL since frontend and backend are on same domain
 export const API_BASE =
   import.meta.env.VITE_API_URL ||
-  "/api";  // ← This will call https://tkprotf-1.onrender.com/api
+  "https://tkprotf.onrender.com/api"; 
 
 export async function api(path, options = {}) {
   const headers = {

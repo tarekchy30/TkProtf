@@ -13,8 +13,11 @@ dotenv.config();
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://tkprotf-1.onrender.com",
+  "http://localhost:3000",
+  "https://tkprotf.onrender.com",        // ← Add this (no -1)
+  "https://tkprotf-1.onrender.com",      // Keep this too just in case
 ];
+
 
 app.use(
   cors({

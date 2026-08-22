@@ -1,6 +1,6 @@
 export const API_BASE =
   import.meta.env.VITE_API_URL ||
-  "https://tkprotf.onrender.com/api";
+  "https://tkprotf-1.onrender.com/api";
 
 export async function api(path, options = {}) {
   const headers = {

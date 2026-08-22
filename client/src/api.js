@@ -1,7 +1,7 @@
 // client/src/api.js
 export const API_BASE =
   import.meta.env.VITE_API_URL ||
-  "https://tkprotf.onrender.com";  // ← Your backend URL
+  "https://tkprotf.onrender.com/api";  // ← Your backend URL
 
 export async function api(path, options = {}) {
   const headers = {

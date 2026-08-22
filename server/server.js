@@ -12,18 +12,20 @@ import { fileURLToPath } from "url";
 dotenv.config();
 const app = express();
 
-// ============ CORS FIX ============
+// ============ CORS - Allow your frontend ============
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3000",
-  "https://tkprotf.onrender.com",        // ← Your actual frontend URL
+  "https://tkprotf.onrender.com",        // ← YOUR FRONTEND URL
   "https://tkprotf-1.onrender.com",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
+      
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -85,14 +87,20 @@ CREATE TABLE IF NOT EXISTS profile(id INTEGER PRIMARY KEY CHECK(id=1),data TEXT)
 `);
 
 // Create admin user from env variables
-const adminEmail = process.env.ADMIN_EMAIL;
-const adminPassword = process.env.ADMIN_PASSWORD;
-if (adminEmail && adminPassword && !db.prepare("SELECT id FROM users WHERE email=?").get(adminEmail)) {
+const adminEmail = process.env.ADMIN_EMAIL || "admin@example.com";
+const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
+
+// Check if admin exists, if not create one
+const existingAdmin = db.prepare("SELECT id FROM users WHERE email=?").get(adminEmail);
+if (!existingAdmin) {
   db.prepare("INSERT INTO users(email,password) VALUES(?,?)").run(
     adminEmail,
-    bcrypt.hashSync(adminPassword, 12),
+    bcrypt.hashSync(adminPassword, 12)
   );
   console.log("✅ Admin account created:", adminEmail);
+  console.log("✅ Admin password:", adminPassword);
+} else {
+  console.log("✅ Admin account exists:", adminEmail);
 }
 
 // Create default profile if not exists
@@ -110,7 +118,7 @@ if (!db.prepare("SELECT id FROM profile WHERE id=1").get()) {
       cvUrl: "",
       skills: ["HTML", "CSS", "JavaScript", "React", "Node.js", "Android", "ESP32", "WordPress"],
       interests: ["AI", "Cybersecurity", "Computer Vision", "IoT", "Robotics", "HCI"],
-    }),
+    })
   );
 }
 
@@ -142,52 +150,74 @@ app.post("/api/upload", auth, upload.single("image"), (req, res) => {
 });
 
 app.post("/api/auth/login", (req, res) => {
-  console.log("📝 Login attempt:", req.body.email);
+  console.log("📝 Login attempt for:", req.body.email);
   const { email, password } = req.body || {};
-  const u = db.prepare("SELECT * FROM users WHERE email=?").get(email);
-  if (!u || !bcrypt.compareSync(password, u.password)) {
-    console.log("❌ Login failed for:", email);
-    return res.status(401).json({ message: "Invalid email or password" });
-  }
-  console.log("✅ Login successful for:", email);
-  res.json({
-    token: jwt.sign(
+  
+  try {
+    const u = db.prepare("SELECT * FROM users WHERE email=?").get(email);
+    
+    if (!u) {
+      console.log("❌ User not found:", email);
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    
+    if (!bcrypt.compareSync(password, u.password)) {
+      console.log("❌ Wrong password for:", email);
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    
+    console.log("✅ Login successful for:", email);
+    const token = jwt.sign(
       { id: u.id, email: u.email, role: u.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "your-secret-key-change-this",
       { expiresIn: "7d" }
-    ),
-  });
+    );
+    res.json({ token });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
-app.get("/api/profile", (req, res) =>
-  res.json(JSON.parse(db.prepare("SELECT data FROM profile WHERE id=1").get().data))
-);
+app.get("/api/profile", (req, res) => {
+  try {
+    const profile = db.prepare("SELECT data FROM profile WHERE id=1").get();
+    res.json(JSON.parse(profile.data));
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching profile" });
+  }
+});
 
 app.get("/api/:resource", (req, res) => {
-  if (!allowed.includes(req.params.resource))
+  if (!allowed.includes(req.params.resource)) {
     return res.status(404).json({ message: "Not found" });
-  const rows = db
-    .prepare("SELECT id,data FROM content WHERE resource=? ORDER BY id DESC")
-    .all(req.params.resource);
-  res.json(
-    rows
-      .map((r) => ({ id: r.id, ...JSON.parse(r.data) }))
-      .filter((x) => x.status !== "draft")
-  );
+  }
+  try {
+    const rows = db
+      .prepare("SELECT id,data FROM content WHERE resource=? ORDER BY id DESC")
+      .all(req.params.resource);
+    res.json(
+      rows
+        .map((r) => ({ id: r.id, ...JSON.parse(r.data) }))
+        .filter((x) => x.status !== "draft")
+    );
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching data" });
+  }
 });
 
 app.get("/api/admin/stats", auth, (req, res) => {
   const out = {};
-  allowed.forEach(
-    (x) =>
-      (out[x] = db.prepare("SELECT COUNT(*) c FROM content WHERE resource=?").get(x).c)
-  );
+  allowed.forEach((x) => {
+    out[x] = db.prepare("SELECT COUNT(*) c FROM content WHERE resource=?").get(x).c;
+  });
   res.json(out);
 });
 
 app.get("/api/admin/:resource", auth, (req, res) => {
-  if (!allowed.includes(req.params.resource))
+  if (!allowed.includes(req.params.resource)) {
     return res.status(404).json({ message: "Not found" });
+  }
   const rows = db
     .prepare("SELECT id,data FROM content WHERE resource=? ORDER BY id DESC")
     .all(req.params.resource);
@@ -195,8 +225,9 @@ app.get("/api/admin/:resource", auth, (req, res) => {
 });
 
 app.post("/api/admin/:resource", auth, (req, res) => {
-  if (!allowed.includes(req.params.resource))
+  if (!allowed.includes(req.params.resource)) {
     return res.status(404).json({ message: "Not found" });
+  }
   const data = { ...req.body };
   if (req.params.resource === "blogs" && !data.slug) {
     data.slug =
@@ -214,8 +245,9 @@ app.post("/api/admin/:resource", auth, (req, res) => {
 });
 
 app.put("/api/admin/:resource/:id", auth, (req, res) => {
-  if (!allowed.includes(req.params.resource))
+  if (!allowed.includes(req.params.resource)) {
     return res.status(404).json({ message: "Not found" });
+  }
   const data = { ...req.body };
   db.prepare(
     "UPDATE content SET title=?,data=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND resource=?"
@@ -224,8 +256,9 @@ app.put("/api/admin/:resource/:id", auth, (req, res) => {
 });
 
 app.delete("/api/admin/:resource/:id", auth, (req, res) => {
-  if (!allowed.includes(req.params.resource))
+  if (!allowed.includes(req.params.resource)) {
     return res.status(404).json({ message: "Not found" });
+  }
   db.prepare("DELETE FROM content WHERE id=? AND resource=?").run(
     req.params.id,
     req.params.resource
@@ -238,24 +271,11 @@ app.put("/api/admin/profile", auth, (req, res) => {
   res.json(req.body);
 });
 
-// ============ SERVE FRONTEND (AFTER API ROUTES) ============
-const staticPath = path.join(__dirname, "dist");
-if (fs.existsSync(staticPath)) {
-  console.log("📁 Serving static files from:", staticPath);
-  app.use(express.static(staticPath));
-  
-  // Catchall route - serve index.html for any non-API request
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(staticPath, "index.html"));
-  });
-} else {
-  console.log("⚠️  dist folder not found. Frontend not being served.");
-}
-
 // ============ START SERVER ============
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 API URL: http://localhost:${PORT}/api/health`);
-  console.log(`📍 Frontend: http://localhost:${PORT}`);
+  console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📍 Admin email: ${adminEmail}`);
+  console.log(`📍 Admin password: ${adminPassword}`);
 });

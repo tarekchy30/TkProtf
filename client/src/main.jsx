@@ -978,14 +978,14 @@ useEffect(() => {
       <a
   className="projectCard"
   key={x.id || x.title}
-  href={x.liveUrl || "#"}
-  target={x.liveUrl ? "_blank" : undefined}
-  rel={x.liveUrl ? "noopener noreferrer" : undefined}
-  onClick={(e) => {
-    if (!x.liveUrl) {
-      e.preventDefault();
-    }
-  }}
+  href={x.liveUrl || x.github || "#"}
+target={x.liveUrl || x.github ? "_blank" : undefined}
+rel={x.liveUrl || x.github ? "noopener noreferrer" : undefined}
+onClick={(e) => {
+  if (!x.liveUrl && !x.github) {
+    e.preventDefault();
+  }
+}}
 >
 
         {/* PROJECT IMAGE */}

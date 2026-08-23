@@ -391,11 +391,13 @@ function getYouTubeId(url) {
 
 function getYouTubeThumbnail(url) {
   const id = getYouTubeId(url);
+
   if (!id) return "";
 
-  // hqdefault is more reliable than maxresdefault
-  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
 }
+
+
 
 function Home() {
 

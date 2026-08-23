@@ -1068,19 +1068,39 @@ useEffect(() => {
 
           </p>
 
-          <div className="projectTags">
+         <div className="projectTags">
+  {(x.tech || []).map((t, index) => (
+    <span key={`${t}-${index}`}>
+      {t}
+    </span>
+  ))}
+</div>
 
-            {(x.tech || []).map((t, index) => (
+<div className="projectLinks">
 
-              <span key={`${t}-${index}`}>
+  {x.liveUrl && (
+    <a
+      href={x.liveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+    >
+      Live Demo <ArrowUpRight size={15} />
+    </a>
+  )}
 
-                {t}
+  {x.github && (
+    <a
+      href={x.github}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+    >
+      GitHub <Github size={15} />
+    </a>
+  )}
 
-              </span>
-
-            ))}
-
-          </div>
+</div>
 
         </div>
 

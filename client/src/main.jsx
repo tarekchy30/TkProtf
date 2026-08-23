@@ -975,13 +975,18 @@ useEffect(() => {
 
     {p.slice(0, 6).map((x, i) => (
 
-      <article
-
-        className="projectCard"
-
-        key={x.id || x.title}
-
-      >
+      <a
+  className="projectCard"
+  key={x.id || x.title}
+  href={x.liveUrl || "#"}
+  target={x.liveUrl ? "_blank" : undefined}
+  rel={x.liveUrl ? "noopener noreferrer" : undefined}
+  onClick={(e) => {
+    if (!x.liveUrl) {
+      e.preventDefault();
+    }
+  }}
+>
 
         {/* PROJECT IMAGE */}
 
@@ -1079,7 +1084,7 @@ useEffect(() => {
 
         </div>
 
-      </article>
+      </a>
 
     ))}
 

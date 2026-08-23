@@ -1365,7 +1365,7 @@ useEffect(() => {
 
   <div className="cards">
 
-    {v.slice(0, 3).map((x, i) => {
+    {v.slice(0, 6).map((x, i) => {
 
       const videoId =
 

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 import { createRoot } from "react-dom/client";
 
-import logo from "./tk.jpg";
+import logo from "./tk.png";
 
 import {
 
@@ -247,12 +247,14 @@ function Nav() {
 
         >
 
-          <span className="logoMark">TC</span>
+          <img
+  src={logo}
+  alt="Tarek Chy"
+  className="navLogo"
+/>
 
 <span className="logoText">
-
   Tarek<span>Chy</span>
-
 </span>
 
         </Link>

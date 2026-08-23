@@ -1361,19 +1361,15 @@ useEffect(() => {
 
     {v.slice(0, 6).map((x, i) => {
 
-      const videoId =
+  const videoId =
+    x.videoId ||
+    getYouTubeId(x.youtubeUrl);
 
-        x.videoId ||
+  const thumbnail =
+    getYouTubeThumbnail(x.youtubeUrl) ||
+    x.thumbnail;
 
-        getYouTubeId(x.youtubeUrl);
-
-      const thumbnail =
-
-        x.thumbnail ||
-
-        getYouTubeThumbnail(x.youtubeUrl);
-
-      return (
+  return (
 
         <article
 

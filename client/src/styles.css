@@ -9801,7 +9801,12 @@ small {
   object-fit: cover;
   object-position: center;
 }
-
+.navLogo {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 10px;
+}
 
 
 

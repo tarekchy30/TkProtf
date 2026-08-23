@@ -380,29 +380,21 @@ function Nav() {
 }
 
 function getYouTubeId(url) {
-
   if (!url) return "";
 
   const match = url.match(
-
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/
-
   );
 
   return match ? match[1] : "";
-
 }
 
 function getYouTubeThumbnail(url) {
-
   const id = getYouTubeId(url);
-
   if (!id) return "";
 
   // hqdefault is more reliable than maxresdefault
-
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
-
 }
 
 function Home() {

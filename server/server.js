@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 
 dotenv.config();
 const app = express();
-const cors = require('cors'); 
+
 
 // ============ CORS - Allow your frontend ============
 const allowedOrigins = [

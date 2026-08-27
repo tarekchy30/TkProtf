@@ -1,10 +1,7 @@
 // client/src/api.js
 
-
-
 export const API_BASE =
   import.meta.env.VITE_API_URL || 'http://localhost:5000/api'; // ← Your backend URL
-
 
 export async function api(endpoint, options = {}) {
   const token = localStorage.getItem("token");
@@ -20,11 +17,12 @@ export async function api(endpoint, options = {}) {
 
   const url = `${API_BASE}${endpoint}`;
   
+  // Logging for debugging
   console.log("🚀 API Request:", {
     url,
     method: options.method || "GET",
     headers,
-    body: options.body ? JSON.parse(options.body) : null
+    body: options.body ? options.body : null // Removed JSON.parse to avoid errors on non-json bodies
   });
 
   try {
@@ -33,7 +31,9 @@ export async function api(endpoint, options = {}) {
       headers,
     });
 
-    const data = await response.json().catch(() => ({}));
+    // Safely parse JSON, handling empty responses
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : {};
     
     console.log("📥 API Response:", {
       status: response.status,
@@ -51,24 +51,3 @@ export async function api(endpoint, options = {}) {
     throw error;
   }
 }
-
-  try {
-    const response = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers,
-    });
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error.message || `Request failed: ${response.status}`
-      );
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error("API Error:", error);
-    throw error;
-  }
-
-

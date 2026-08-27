@@ -347,23 +347,7 @@ function Nav() {
    HOME - Simplified
 ========================================================= */
 
-function getYouTubeId(url) {
-  if (!url) return "";
 
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/
-  );
-
-  return match ? match[1] : "";
-}
-
-function getYouTubeThumbnail(url) {
-  const id = getYouTubeId(url);
-
-  if (!id) return "";
-
-  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
-}
 
 
 
@@ -2361,94 +2345,7 @@ function ImageDropzone({
    BLOG EDITOR
 ========================================================= */
 
-function BlogEditor({ value, onChange }) {
-  const quillRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
 
-  async function imageHandler() {
-    if (uploading) return;
-
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-
-      try {
-        setUploading(true);
-        const imageUrl = await uploadImageFile(file);
-        const quill = quillRef.current?.getEditor();
-
-        if (!quill) {
-          throw new Error("Editor is not ready.");
-        }
-
-        const range = quill.getSelection(true) || {
-          index: quill.getLength(),
-        };
-
-        quill.insertEmbed(range.index, "image", getImageUrl(imageUrl), "user");
-        quill.setSelection(range.index + 1, 0, "silent");
-      } catch (error) {
-        console.error("BLOG IMAGE UPLOAD ERROR:", error);
-        alert(error.message || "Image upload failed.");
-      } finally {
-        setUploading(false);
-      }
-    };
-  }
-
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          [{ align: [] }],
-          ["blockquote", "code-block"],
-          ["link", "image"],
-          ["clean"],
-        ],
-        handlers: {
-          image: imageHandler,
-        },
-      },
-    }),
-    [uploading]
-  );
-
-  return (
-    <div className="blogEditorWrapper">
-      {uploading && <div className="editorUploadStatus">Uploading image...</div>}
-
-      <ReactQuill
-        ref={quillRef}
-        theme="snow"
-        value={value || ""}
-        onChange={onChange}
-        modules={modules}
-        formats={[
-          "header",
-          "bold",
-          "italic",
-          "underline",
-          "strike",
-          "list",
-          "bullet",
-          "align",
-          "blockquote",
-          "code-block",
-          "link",
-          "image",
-        ]}
-      />
-    </div>
-  );
-}
 
 /* =========================================================
    EDITOR

@@ -253,15 +253,7 @@ function Nav() {
             Tarek<span>Chy</span>
           </span>
 
-          <img
-  src={logo}
-  alt="Tarek Chy"
-  className="navLogo"
-/>
-
-<span className="logoText">
-  Tarek<span>Chy</span>
-</span>
+         
 
 
         </Link>

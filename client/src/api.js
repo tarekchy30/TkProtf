@@ -1,36 +1,48 @@
 // client/src/api.js
-export const API_BASE =
-  import.meta.env.VITE_API_URL ||
-  "https://tkprotf.onrender.com/api";  // ← Your backend URL
+export const API_BASE = "http://localhost:5000/api";
 
-export async function api(path, options = {}) {
+export async function api(endpoint, options = {}) {
+  const token = localStorage.getItem("token");
+  
   const headers = {
     "Content-Type": "application/json",
-    ...(options.headers || {}),
+    ...options.headers,
   };
-
-  const token = localStorage.getItem("token");
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
+  const url = `${API_BASE}${endpoint}`;
+  
+  console.log("🚀 API Request:", {
+    url,
+    method: options.method || "GET",
+    headers,
+    body: options.body ? JSON.parse(options.body) : null
+  });
+
   try {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const response = await fetch(url, {
       ...options,
       headers,
     });
 
+    const data = await response.json().catch(() => ({}));
+    
+    console.log("📥 API Response:", {
+      status: response.status,
+      ok: response.ok,
+      data
+    });
+
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error.message || `Request failed: ${response.status}`
-      );
+      throw new Error(data.message || `API request failed: ${response.status}`);
     }
 
-    return response.json();
+    return data;
   } catch (error) {
-    console.error("API Error:", error);
+    console.error("❌ API Error:", error);
     throw error;
   }
 }

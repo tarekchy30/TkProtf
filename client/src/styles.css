@@ -10591,6 +10591,7 @@ body {
 }
 
 /* =========================================
+<<<<<<< HEAD
    PREMIUM HERO - MOBILE
 ========================================= */
 
@@ -10722,6 +10723,284 @@ body {
 
 
 
+=======
+   HERO SECTION - MOBILE (max-width: 900px)
+========================================= */
+
+@media (max-width: 900px) {
+  .premiumHero {
+    min-height: auto;
+    padding: 130px 20px 60px;
+  }
+  
+  .heroContainer {
+    grid-template-columns: 1fr !important;  /* Single column on mobile */
+    gap: 30px !important;
+  }
+  
+  .heroContent {
+    max-width: 100% !important;
+    text-align: center !important;
+  }
+  
+  .heroTitle {
+    font-size: clamp(42px, 8vw, 58px) !important;
+    letter-spacing: -2px !important;
+  }
+  
+  .heroDescription {
+    max-width: 100% !important;
+    margin: 20px auto 0 !important;
+    font-size: 15px !important;
+  }
+  
+  .heroActions {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+  
+  .heroSocials {
+    justify-content: center !important;
+  }
+  
+  .heroVisual {
+    min-height: 520px !important;
+  }
+  
+  .profileSystem {
+    width: 400px !important;
+    height: 400px !important;
+    transform: scale(0.85) !important;
+  }
+  
+  .profileImageWrapper {
+    width: 240px !important;
+    height: 240px !important;
+  }
+  
+  .codeCard {
+    position: absolute !important;
+    bottom: -10px !important;
+    right: 50% !important;
+    transform: translateX(50%) !important;
+    width: 260px !important;
+  }
+  
+  .floatingTech {
+    display: none !important;
+  }
+  
+  .orbitOuter {
+    width: 320px !important;
+    height: 320px !important;
+  }
+  
+  .orbitMiddle {
+    width: 260px !important;
+    height: 260px !important;
+  }
+}
+
+/* =========================================
+   HERO SECTION - SMALL MOBILE (max-width: 650px)
+========================================= */
+
+@media (max-width: 650px) {
+  .premiumHero {
+    padding: 110px 16px 40px !important;
+  }
+  
+  .heroContainer {
+    gap: 20px !important;
+  }
+  
+  .heroTitle {
+    font-size: clamp(32px, 10vw, 42px) !important;
+    letter-spacing: -1.5px !important;
+  }
+  
+  .heroDescription {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  
+  .heroActions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  
+  .heroPrimaryBtn,
+  .heroSecondaryBtn {
+    height: 46px !important;
+    font-size: 12px !important;
+    justify-content: center !important;
+    width: 100% !important;
+    padding: 0 16px !important;
+  }
+  
+  .heroSocials {
+    gap: 12px !important;
+  }
+  
+  .heroSocials a {
+    font-size: 11px !important;
+  }
+  
+  .heroVisual {
+    min-height: 460px !important;
+  }
+  
+  .profileSystem {
+    width: 320px  !important;
+    height: 320px  !important;
+    margin: 0 !important;
+  }
+  
+  .profileImageWrapper {
+    width: 240px !important;
+    height: 240px !important;
+    padding: 5px !important;
+  }
+  
+  .profilePlaceholder {
+    font-size: 30px !important;
+  }
+  
+  .codeCard {
+    width: 220px !important;
+    bottom: -20px !important;
+  }
+  
+  .codeBody {
+    font-size: 8px !important;
+    padding: 12px !important;
+    line-height: 1.8 !important;
+  }
+  
+  .codeIndent {
+    padding-left: 10px !important;
+  }
+  
+  .codeIndent2 {
+    padding-left: 20px !important;
+  }
+  
+  .codeHeader {
+    height: 30px !important;
+    font-size: 7px !important;
+    padding: 0 10px !important;
+  }
+  
+  .orbitOuter {
+    width: 240px !important;
+    height: 240px !important;
+  }
+  
+  .orbitMiddle {
+    width: 190px !important;
+    height: 190px !important;
+  }
+  
+  .profileHalo {
+    width: 150px !important;
+    height: 150px !important;
+  }
+  
+  .profileStatus {
+    font-size: 7px !important;
+    padding: 4px 10px !important;
+    bottom: 5px !important;
+  }
+  
+  .heroEyebrow {
+    font-size: 8px !important;
+    padding: 4px 10px !important;
+    margin-bottom: 16px !important;
+  }
+  
+  .scrollIndicator {
+    display: none !important;
+  }
+}
+
+/* =========================================
+   EXTRA SMALL (max-width: 400px)
+========================================= */
+
+@media (max-width: 400px) {
+  .premiumHero {
+    padding: 100px 12px 30px !important;
+  }
+  
+  .heroTitle {
+    font-size: 28px !important;
+  }
+  
+  .profileSystem {
+    transform: scale(0.65) !important;
+    margin: -40px 0 !important;
+  }
+  
+  .codeCard {
+    width: 190px !important;
+    bottom: -30px !important;
+  }
+  
+  .codeBody {
+    font-size: 7px !important;
+    padding: 10px !important;
+  }
+  
+  .heroPrimaryBtn,
+  .heroSecondaryBtn {
+    height: 40px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* =========================================
+   FIX FOR NAV ON MOBILE
+========================================= */
+
+@media (max-width: 650px) {
+  .siteHeader {
+    padding: 10px 12px !important;
+  }
+  
+  .floatingNav {
+    height: 54px !important;
+    padding: 6px 8px 6px 10px !important;
+    border-radius: 14px !important;
+  }
+  
+  .navLogo {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  
+  .logoText {
+    font-size: 12px !important;
+  }
+  
+  .logoText span {
+    font-size: 11px !important;
+  }
+  
+  .navLinks {
+    display: none !important;
+  }
+  
+  .navStatus {
+    display: none !important;
+  }
+  
+  .mobileMenu {
+    display: block !important;
+  }
+}
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
 
   /* =======================================================
      HALO

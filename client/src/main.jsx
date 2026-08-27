@@ -248,9 +248,22 @@ function Nav() {
             className="navLogo"
           />
 
+<<<<<<< HEAD
           <span className="logoText">
             Tarek<span>Chy</span>
           </span>
+=======
+          <img
+  src={logo}
+  alt="Tarek Chy"
+  className="navLogo"
+/>
+
+<span className="logoText">
+  Tarek<span>Chy</span>
+</span>
+
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
         </Link>
 
         <div className="navLinks">
@@ -330,9 +343,31 @@ function Nav() {
   );
 }
 
+<<<<<<< HEAD
 /* =========================================================
    HOME - Simplified
 ========================================================= */
+=======
+function getYouTubeId(url) {
+  if (!url) return "";
+
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([^&?/]+)/
+  );
+
+  return match ? match[1] : "";
+}
+
+function getYouTubeThumbnail(url) {
+  const id = getYouTubeId(url);
+
+  if (!id) return "";
+
+  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+}
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
+
+
 
 function Home() {
   const [p, setP] = useState([]);
@@ -733,10 +768,325 @@ function Home() {
   </div>
 
   <div className="projectsGrid">
+<<<<<<< HEAD
     {p.slice(0, 6).map((x, i) => {
       // Determine the link URL (priority: liveUrl > github > null)
       const linkUrl = x.liveUrl || x.github || null;
       const isExternal = Boolean(linkUrl);
+=======
+
+    {p.slice(0, 6).map((x, i) => (
+
+      <a
+  className="projectCard"
+  key={x.id || x.title}
+  href={x.liveUrl || x.github || "#"}
+target={x.liveUrl || x.github ? "_blank" : undefined}
+rel={x.liveUrl || x.github ? "noopener noreferrer" : undefined}
+onClick={(e) => {
+  if (!x.liveUrl && !x.github) {
+    e.preventDefault();
+  }
+}}
+>
+
+        {/* PROJECT IMAGE */}
+
+        <div className="projectVisual">
+
+          {x.image ? (
+
+            <img
+
+              src={
+
+                x.image.startsWith("http")
+
+                  ? x.image
+
+                  : `${API_BASE.replace("/api", "")}${x.image}`
+
+              }
+
+              alt={x.title}
+
+            />
+
+          ) : (
+
+            <div className="projectPlaceholder">
+
+              <strong>
+
+                {i % 2 ? "</>" : "{ }"}
+
+              </strong>
+
+            </div>
+
+          )}
+
+          <div className="projectImageOverlay" />
+
+          <div className="projectNumber">
+
+            0{i + 1}
+
+          </div>
+
+          <div className="projectCategory">
+
+            {x.category || "PROJECT"}
+
+          </div>
+
+          <div className="projectArrow">
+
+            <ArrowUpRight />
+
+          </div>
+
+        </div>
+
+        {/* PROJECT CONTENT */}
+
+        <div className="projectContent">
+
+          <div className="projectTitleRow">
+
+            <h3>{x.title}</h3>
+
+            <span className="projectIndex">
+
+              / {String(i + 1).padStart(2, "0")}
+
+            </span>
+
+          </div>
+
+          <p>
+
+            {x.description}
+
+          </p>
+
+         <div className="projectTags">
+  {(x.tech || []).map((t, index) => (
+    <span key={`${t}-${index}`}>
+      {t}
+    </span>
+  ))}
+</div>
+
+<div className="projectLinks">
+
+  {x.liveUrl && (
+    <a
+      href={x.liveUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+    >
+      Live Demo <ArrowUpRight size={15} />
+    </a>
+  )}
+
+  {x.github && (
+    <a
+      href={x.github}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={(e) => e.stopPropagation()}
+    >
+      GitHub <Github size={15} />
+    </a>
+  )}
+
+</div>
+
+        </div>
+
+      </a>
+
+    ))}
+
+  </div>
+
+</Block>
+
+      <Block id="university" num="02" title="My university archive.">
+
+  <div className="universityArchive">
+
+    <div className="universityGlow" />
+
+    <div className="universityIcon">
+
+      <GraduationCap />
+
+    </div>
+
+    <div className="universityContent">
+
+      <div className="universityTop">
+
+        <span>02</span>
+
+        <span>ACADEMIC JOURNEY</span>
+
+      </div>
+
+      <h3>
+
+        Coursework, labs,
+
+        <br />
+
+        <span>assignments & projects.</span>
+
+      </h3>
+
+      <p>
+
+        A growing archive of my Computer Science journey —
+
+        including university coursework, laboratory work,
+
+        assignments, semester projects and academic experiments.
+
+      </p>
+
+      <div className="universityTags">
+
+        <span>Coursework</span>
+
+        <span>Labs</span>
+
+        <span>Assignments</span>
+
+        <span>Semester Projects</span>
+
+      </div>
+
+    </div>
+
+    <div className="universityArrow">
+
+      <ArrowUpRight />
+
+    </div>
+
+    <div className="universityLines" />
+
+  </div>
+
+</Block>
+
+<Block id="research" num="03" title="Exploring before I specialize.">
+
+  <div className="researchIntro">
+    <div className="researchLabel">
+      <span className="researchDot" />
+      AREAS I'M EXPLORING
+    </div>
+
+    <p>
+      I'm interested in the intersection of intelligent systems,
+      cybersecurity and human-centered technology.
+    </p>
+  </div>
+
+  <div className="researchGrid">
+    {research.slice(0, 6).map((x, i) => {
+  const iconMap = {
+    BrainCircuit,
+    Code2,
+    Globe,
+    Cpu,
+    Smartphone,
+    FlaskConical,
+    GraduationCap,
+  };
+
+  const Icon = iconMap[x.icon] || BrainCircuit;
+
+  return (
+    <a
+      key={x.id || x._id || x.title}
+      href={x.link || "#"}
+      target={x.link ? "_blank" : undefined}
+      rel={x.link ? "noreferrer" : undefined}
+      className="researchCard"
+      onClick={(e) => {
+        if (!x.link) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <div className="researchCardTop">
+        <span>
+          {String(i + 1).padStart(2, "0")}
+        </span>
+
+        <span className="researchCode">
+          {x.icon || "RESEARCH"}
+        </span>
+      </div>
+
+      <div className="researchCardIcon">
+        <Icon size={25} />
+      </div>
+
+      <h3>{x.title}</h3>
+
+      <p>{x.description}</p>
+
+      <div className="researchCardBottom">
+        <span>
+          {(x.status || "EXPLORING").toUpperCase()}
+        </span>
+
+        <ArrowUpRight />
+      </div>
+    </a>
+  );
+})}
+  </div>
+
+  {!research.length && (
+    <div className="note">
+      <BrainCircuit />
+      Research topics added from the private dashboard
+      will appear here.
+    </div>
+  )}
+
+</Block>
+
+      <Block id="blog" num="03" title="What I'm learning, documented.">
+
+  <div className="blogSectionIntro">
+    <div className="blogSectionLabel">
+      <span className="blogPulseDot" />
+      LATEST FROM MY NOTEBOOK
+    </div>
+
+    <p>
+      Ideas, experiments, technical lessons and things I'm discovering
+      while building.
+    </p>
+  </div>
+
+  <div className="blogGrid">
+
+    {b.slice(0, 3).map((x, i) => {
+
+      const imageUrl = x.coverImage
+        ? x.coverImage.startsWith("http")
+          ? x.coverImage
+          : `${API_BASE.replace("/api", "")}${x.coverImage}`
+        : null;
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
 
       return (
         <article
@@ -2709,5 +3059,200 @@ function App() {
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <App />
+<<<<<<< HEAD
   </BrowserRouter>
 );
+=======
+
+  </BrowserRouter>,
+
+);
+
+function BlogEditor({ value, onChange }) {
+
+  const quillRef = React.useRef(null);
+
+  async function imageHandler() {
+
+    const input = document.createElement("input");
+
+    input.setAttribute("type", "file");
+
+    input.setAttribute("accept", "image/*");
+
+    input.click();
+
+    input.onchange = async () => {
+
+      const file = input.files?.[0];
+
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+
+        alert("Please select an image.");
+
+        return;
+
+      }
+
+      if (file.size > 8 * 1024 * 1024) {
+
+        alert("Image must be smaller than 8MB.");
+
+        return;
+
+      }
+
+      try {
+
+        const formData = new FormData();
+
+        formData.append("image", file);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+
+          `${API_BASE}/upload`,
+
+          {
+
+            method: "POST",
+
+            headers: {
+
+              Authorization: `Bearer ${token}`,
+
+            },
+
+            body: formData,
+
+          }
+
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+          throw new Error(data.message || "Image upload failed");
+
+        }
+
+        const quill = quillRef.current.getEditor();
+
+        const range = quill.getSelection(true);
+
+        const imageUrl = data.url.startsWith("http")
+
+          ? data.url
+
+          : `${API_BASE.replace("/api", "")}${data.url}`;
+
+        quill.insertEmbed(
+
+          range.index,
+
+          "image",
+
+          imageUrl
+
+        );
+
+        quill.setSelection(
+
+          range.index + 1
+
+        );
+
+      } catch (error) {
+
+        alert(error.message);
+
+      }
+
+    };
+
+  }
+
+  const modules = {
+
+    toolbar: {
+
+      container: [
+
+        [{ header: [1, 2, 3, false] }],
+
+        ["bold", "italic", "underline", "strike"],
+
+        [{ list: "ordered" }, { list: "bullet" }],
+
+        [{ align: [] }],
+
+        ["blockquote", "code-block"],
+
+        ["link", "image"],
+
+        ["clean"],
+
+      ],
+
+      handlers: {
+
+        image: imageHandler,
+
+      },
+
+    },
+
+  };
+
+  return (
+
+    <ReactQuill
+
+      ref={quillRef}
+
+      theme="snow"
+
+      value={value || ""}
+
+      onChange={onChange}
+
+      modules={modules}
+
+      formats={[
+
+        "header",
+
+        "bold",
+
+        "italic",
+
+        "underline",
+
+        "strike",
+
+        "list",
+
+        "bullet",
+
+        "align",
+
+        "blockquote",
+
+        "code-block",
+
+        "link",
+
+        "image",
+
+      ]}
+
+    />
+
+  );
+
+}
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9

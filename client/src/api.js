@@ -1,5 +1,10 @@
 // client/src/api.js
+<<<<<<< HEAD
 export const API_BASE = "http://localhost:5000/api";
+=======
+export const API_BASE =
+  import.meta.env.VITE_API_URL || 'http://localhost:5000/api'; // ← Your backend URL
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
 
 export async function api(endpoint, options = {}) {
   const token = localStorage.getItem("token");
@@ -13,6 +18,7 @@ export async function api(endpoint, options = {}) {
     headers.Authorization = `Bearer ${token}`;
   }
 
+<<<<<<< HEAD
   const url = `${API_BASE}${endpoint}`;
   
   console.log("🚀 API Request:", {
@@ -46,3 +52,24 @@ export async function api(endpoint, options = {}) {
     throw error;
   }
 }
+=======
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(
+        error.message || `Request failed: ${response.status}`
+      );
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    throw error;
+  }
+}
+>>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9

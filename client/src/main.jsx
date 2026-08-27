@@ -248,11 +248,11 @@ function Nav() {
             className="navLogo"
           />
 
-<<<<<<< HEAD
+
           <span className="logoText">
             Tarek<span>Chy</span>
           </span>
-=======
+
           <img
   src={logo}
   alt="Tarek Chy"
@@ -263,7 +263,7 @@ function Nav() {
   Tarek<span>Chy</span>
 </span>
 
->>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
+
         </Link>
 
         <div className="navLinks">
@@ -343,11 +343,10 @@ function Nav() {
   );
 }
 
-<<<<<<< HEAD
 /* =========================================================
    HOME - Simplified
 ========================================================= */
-=======
+
 function getYouTubeId(url) {
   if (!url) return "";
 
@@ -365,7 +364,7 @@ function getYouTubeThumbnail(url) {
 
   return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
 }
->>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
+
 
 
 
@@ -756,8 +755,9 @@ function Home() {
         </div>
       </section>
 
-      {/* PROJECTS */}
+   
 <Block id="projects" num="01" title="Things I've built.">
+
   <div className="projectsIntro">
     <p>
       A collection of software, mobile,
@@ -768,147 +768,134 @@ function Home() {
   </div>
 
   <div className="projectsGrid">
-<<<<<<< HEAD
+
     {p.slice(0, 6).map((x, i) => {
-      // Determine the link URL (priority: liveUrl > github > null)
+
       const linkUrl = x.liveUrl || x.github || null;
-      const isExternal = Boolean(linkUrl);
-=======
 
-    {p.slice(0, 6).map((x, i) => (
+      return (
+        <a
+          className="projectCard"
+          key={x.id || x.title || i}
+          href={linkUrl || "#"}
+          target={linkUrl ? "_blank" : undefined}
+          rel={linkUrl ? "noopener noreferrer" : undefined}
+          onClick={(e) => {
+            if (!linkUrl) {
+              e.preventDefault();
+            }
+          }}
+        >
 
-      <a
-  className="projectCard"
-  key={x.id || x.title}
-  href={x.liveUrl || x.github || "#"}
-target={x.liveUrl || x.github ? "_blank" : undefined}
-rel={x.liveUrl || x.github ? "noopener noreferrer" : undefined}
-onClick={(e) => {
-  if (!x.liveUrl && !x.github) {
-    e.preventDefault();
-  }
-}}
->
+          {/* PROJECT IMAGE */}
+          <div className="projectVisual">
 
-        {/* PROJECT IMAGE */}
+            {x.image ? (
+              <img
+                src={
+                  x.image.startsWith("http")
+                    ? x.image
+                    : `${API_BASE.replace("/api", "")}${x.image}`
+                }
+                alt={x.title || "Project"}
+              />
+            ) : (
+              <div className="projectPlaceholder">
+                <strong>
+                  {i % 2 ? "</>" : "{ }"}
+                </strong>
+              </div>
+            )}
 
-        <div className="projectVisual">
+            <div className="projectImageOverlay" />
 
-          {x.image ? (
+            <div className="projectNumber">
+              0{i + 1}
+            </div>
 
-            <img
+            <div className="projectCategory">
+              {x.category || "PROJECT"}
+            </div>
 
-              src={
+            <div className="projectArrow">
+              <ArrowUpRight />
+            </div>
 
-                x.image.startsWith("http")
+          </div>
 
-                  ? x.image
+          {/* PROJECT CONTENT */}
+          <div className="projectContent">
 
-                  : `${API_BASE.replace("/api", "")}${x.image}`
+            <div className="projectTitleRow">
 
-              }
+              <h3>
+                {x.title}
+              </h3>
 
-              alt={x.title}
-
-            />
-
-          ) : (
-
-            <div className="projectPlaceholder">
-
-              <strong>
-
-                {i % 2 ? "</>" : "{ }"}
-
-              </strong>
+              <span className="projectIndex">
+                / {String(i + 1).padStart(2, "0")}
+              </span>
 
             </div>
 
-          )}
+            <p>
+              {x.description}
+            </p>
 
-          <div className="projectImageOverlay" />
+            {/* TECHNOLOGY TAGS */}
+            <div className="projectTags">
 
-          <div className="projectNumber">
+              {(Array.isArray(x.tech) ? x.tech : []).map((t, index) => (
+                <span key={`${t}-${index}`}>
+                  {t}
+                </span>
+              ))}
 
-            0{i + 1}
+            </div>
+
+            {/* PROJECT LINKS */}
+            <div className="projectLinks">
+
+              {x.liveUrl && (
+                <span
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.open(
+                      x.liveUrl,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                >
+                  Live Demo <ArrowUpRight size={15} />
+                </span>
+              )}
+
+              {x.github && (
+                <span
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.open(
+                      x.github,
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }}
+                >
+                  GitHub <Github size={15} />
+                </span>
+              )}
+
+            </div>
 
           </div>
 
-          <div className="projectCategory">
+        </a>
+      );
 
-            {x.category || "PROJECT"}
-
-          </div>
-
-          <div className="projectArrow">
-
-            <ArrowUpRight />
-
-          </div>
-
-        </div>
-
-        {/* PROJECT CONTENT */}
-
-        <div className="projectContent">
-
-          <div className="projectTitleRow">
-
-            <h3>{x.title}</h3>
-
-            <span className="projectIndex">
-
-              / {String(i + 1).padStart(2, "0")}
-
-            </span>
-
-          </div>
-
-          <p>
-
-            {x.description}
-
-          </p>
-
-         <div className="projectTags">
-  {(x.tech || []).map((t, index) => (
-    <span key={`${t}-${index}`}>
-      {t}
-    </span>
-  ))}
-</div>
-
-<div className="projectLinks">
-
-  {x.liveUrl && (
-    <a
-      href={x.liveUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-    >
-      Live Demo <ArrowUpRight size={15} />
-    </a>
-  )}
-
-  {x.github && (
-    <a
-      href={x.github}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-    >
-      GitHub <Github size={15} />
-    </a>
-  )}
-
-</div>
-
-        </div>
-
-      </a>
-
-    ))}
+    })}
 
   </div>
 
@@ -1086,7 +1073,7 @@ onClick={(e) => {
           ? x.coverImage
           : `${API_BASE.replace("/api", "")}${x.coverImage}`
         : null;
->>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
+
 
       return (
         <article
@@ -3059,14 +3046,14 @@ function App() {
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <App />
-<<<<<<< HEAD
+
   </BrowserRouter>
 );
-=======
 
-  </BrowserRouter>,
 
-);
+ 
+
+
 
 function BlogEditor({ value, onChange }) {
 
@@ -3255,4 +3242,4 @@ function BlogEditor({ value, onChange }) {
   );
 
 }
->>>>>>> e9844e68a7547adcf8fc2755139475ad24c264c9
+

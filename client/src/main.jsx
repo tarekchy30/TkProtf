@@ -417,13 +417,43 @@ function Home() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="loadingContainer">
-        <div className="loadingSpinner" />
-        <p>Loading portfolio...</p>
+  return (
+    <div className="premiumLoader">
+      <div className="loaderGrid" />
+
+      <div className="loaderContent">
+        <div className="loaderLogo">
+          <span>TC</span>
+          <div className="loaderOrbit loaderOrbitOne" />
+          <div className="loaderOrbit loaderOrbitTwo" />
+        </div>
+
+        <div className="loaderText">
+          <span className="loaderLabel">INITIALIZING</span>
+          <h2>Tarek<span>Chy</span></h2>
+          <p>Building ideas into reality.</p>
+        </div>
+
+        <div className="loaderProgress">
+          <span />
+        </div>
+
+        <div className="loaderStatus">
+          <span className="loaderDot" />
+          Loading portfolio
+        </div>
       </div>
-    );
-  }
+
+      <div className="loaderCorner loaderCornerTop">
+        PORTFOLIO / 2026
+      </div>
+
+      <div className="loaderCorner loaderCornerBottom">
+        SOFTWARE · AI · IoT · RESEARCH
+      </div>
+    </div>
+  );
+}
 
   return (
     <>

@@ -537,7 +537,7 @@ small {
 }
 .adminstats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 .adminstats div {
@@ -557,6 +557,37 @@ small {
 }
 .adminstats small {
   color: #68697b;
+}
+.visitorList {
+  display: grid;
+  gap: 9px;
+}
+.visitorRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1.3fr);
+  gap: 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #0d0d1a;
+}
+.visitorRow div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.visitorRow strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.visitorRow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #68697b;
+  font: 9px "DM Mono";
 }
 .list {
   display: grid;
@@ -11107,6 +11138,11 @@ small {
   
   .adminstats b {
     font-size: 24px !important;
+  }
+
+  .visitorRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
   
   .list > div {

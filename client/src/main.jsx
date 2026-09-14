@@ -1,4 +1,6 @@
 import React, {
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -18,8 +20,12 @@ import {
   Link,
 } from "react-router-dom";
 
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+const ReactQuill = lazy(() =>
+  Promise.all([
+    import("react-quill"),
+    import("react-quill/dist/quill.snow.css"),
+  ]).then(([module]) => ({ default: module.default }))
+);
 
 import {
   ArrowUpRight,
@@ -47,6 +53,7 @@ import {
   Trash2,
   Save,
   X,
+  Users,
 } from "lucide-react";
 
 import { api, API_BASE } from "./api";
@@ -351,7 +358,6 @@ function Home() {
   const [profile, setProfile] = useState({});
   const [research, setResearch] = useState([]);
   const [playingVideo, setPlayingVideo] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [typedAbout, setTypedAbout] = useState("");
 
   useEffect(() => {
@@ -359,13 +365,12 @@ function Home() {
 
     async function loadHomeContent() {
       try {
-        setLoading(true);
-        
-        const projectsData = await api("/projects").catch(() => []);
-        const blogsData = await api("/blogs").catch(() => []);
-        const youtubeData = await api("/youtube").catch(() => []);
-        const researchData = await api("/research").catch(() => []);
-        const profileData = await api("/profile").catch(() => ({}));
+        const homeData = await api("/home");
+        const projectsData = homeData?.projects || [];
+        const blogsData = homeData?.blogs || [];
+        const youtubeData = homeData?.youtube || [];
+        const researchData = homeData?.research || [];
+        const profileData = homeData?.profile || {};
 
         if (!mounted) return;
 
@@ -381,10 +386,6 @@ function Home() {
         setV([]);
         setResearch([]);
         setProfile({});
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
       }
     }
 
@@ -393,6 +394,23 @@ function Home() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const visitKey = "portfolio-visit-recorded";
+
+    if (sessionStorage.getItem(visitKey)) {
+      return;
+    }
+
+    api("/visits", {
+      method: "POST",
+      body: JSON.stringify({ page: window.location.pathname }),
+    })
+      .then(() => sessionStorage.setItem(visitKey, "1"))
+      .catch((error) => {
+        console.error("VISITOR TRACKING ERROR:", error);
+      });
   }, []);
 
   useEffect(() => {
@@ -415,45 +433,6 @@ function Home() {
 
     return () => clearInterval(timer);
   }, []);
-
-  if (loading) {
-  return (
-    <div className="premiumLoader">
-      <div className="loaderGrid" />
-
-      <div className="loaderContent">
-        <div className="loaderLogo">
-          <span>TC</span>
-          <div className="loaderOrbit loaderOrbitOne" />
-          <div className="loaderOrbit loaderOrbitTwo" />
-        </div>
-
-        <div className="loaderText">
-          <span className="loaderLabel">INITIALIZING</span>
-          <h2>Tarek<span>Chy</span></h2>
-          <p>Building ideas into reality.</p>
-        </div>
-
-        <div className="loaderProgress">
-          <span />
-        </div>
-
-        <div className="loaderStatus">
-          <span className="loaderDot" />
-          Loading portfolio
-        </div>
-      </div>
-
-      <div className="loaderCorner loaderCornerTop">
-        PORTFOLIO / 2026
-      </div>
-
-      <div className="loaderCorner loaderCornerBottom">
-        SOFTWARE · AI · IoT · RESEARCH
-      </div>
-    </div>
-  );
-}
 
   return (
     <>
@@ -1737,7 +1716,9 @@ function Admin() {
         setStats(data || {});
         console.log("📊 Stats loaded:", data);
       } else if (tab !== "profile") {
-        const data = await api(`/admin/${tab}`);
+        const data = await api(
+          tab === "visitors" ? "/admin/visitors" : `/admin/${tab}`
+        );
         const items = Array.isArray(data) ? data : [];
         setItems(items);
         console.log(`📋 ${tab} loaded:`, items.length, "items");
@@ -1783,6 +1764,18 @@ function Admin() {
         >
           <LayoutDashboard />
           Dashboard
+        </button>
+
+        <button
+          type="button"
+          className={tab === "visitors" ? "on" : ""}
+          onClick={() => {
+            setTab("visitors");
+            setEdit(null);
+          }}
+        >
+          <Users />
+          Visitors
         </button>
 
         {res.map(([resource, name, Icon]) => (
@@ -1831,12 +1824,14 @@ function Admin() {
                 ? "Dashboard"
                 : tab === "profile"
                 ? "Profile"
+                : tab === "visitors"
+                ? "Visitors"
                 : res.find((x) => x[0] === tab)?.[1]}
             </h1>
             {error && <div className="error" style={{color: 'red'}}>{error}</div>}
           </div>
 
-          {tab !== "dashboard" && tab !== "profile" && (
+          {tab !== "dashboard" && tab !== "profile" && tab !== "visitors" && (
             <button
               type="button"
               className="btn main"
@@ -1854,6 +1849,16 @@ function Admin() {
 
         {tab === "dashboard" ? (
           <div className="adminstats">
+            <div>
+              <Users />
+              <b>{stats.uniqueVisitors || 0}</b>
+              <small>Unique visitors</small>
+            </div>
+            <div>
+              <Users />
+              <b>{stats.visits || 0}</b>
+              <small>Total visits</small>
+            </div>
             {res.map(([resource, name, Icon]) => (
               <div key={resource}>
                 <Icon />
@@ -1864,6 +1869,8 @@ function Admin() {
           </div>
         ) : tab === "profile" ? (
           <Profile />
+        ) : tab === "visitors" ? (
+          <VisitorList items={items} />
         ) : (
           <Manager
             r={tab}
@@ -1875,6 +1882,32 @@ function Admin() {
           />
         )}
       </main>
+    </div>
+  );
+}
+
+function VisitorList({ items }) {
+  if (!items.length) {
+    return <div className="note">No visits recorded yet.</div>;
+  }
+
+  return (
+    <div className="visitorList">
+      {items.map((visitor) => (
+        <div className="visitorRow" key={visitor.id}>
+          <div>
+            <strong>Visitor {visitor.visitor_id}</strong>
+            <small>{visitor.page}</small>
+          </div>
+          <div>
+            <strong>{visitor.user_agent || "Unknown browser"}</strong>
+            <small>
+              {visitor.referrer || "Direct visit"} ·{" "}
+              {new Date(visitor.visited_at).toLocaleString()}
+            </small>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -2920,20 +2953,14 @@ function BlogEditor({ value, onChange }) {
   };
 
   return (
-
-    <ReactQuill
-
-      ref={quillRef}
-
-      theme="snow"
-
-      value={value || ""}
-
-      onChange={onChange}
-
-      modules={modules}
-
-      formats={[
+    <Suspense fallback={<div className="note">Loading editor...</div>}>
+      <ReactQuill
+        ref={quillRef}
+        theme="snow"
+        value={value || ""}
+        onChange={onChange}
+        modules={modules}
+        formats={[
 
         "header",
 
@@ -2959,11 +2986,9 @@ function BlogEditor({ value, onChange }) {
 
         "image",
 
-      ]}
-
-    />
+        ]}
+      />
+    </Suspense>
 
   );
-
 }
-

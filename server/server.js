@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { fileURLToPath } from "url";
 import supabase from "./supabase.js";
 
@@ -27,6 +28,7 @@ const __dirname = path.dirname(__filename);
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://127.0.0.1:5173",
   "http://localhost:3000",
   "https://tkprotf.onrender.com",
   "https://tkprotf-1.onrender.com",
@@ -274,6 +276,22 @@ function getYouTubeThumbnail(url) {
   }
 
   return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+
+function getVisitorHash(req) {
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const ip = forwardedFor
+    ? String(forwardedFor).split(",")[0].trim()
+    : req.socket.remoteAddress || "unknown";
+  const salt =
+    process.env.VISITOR_HASH_SALT ||
+    process.env.JWT_SECRET ||
+    "portfolio-visitor";
+
+  return crypto
+    .createHash("sha256")
+    .update(`${salt}:${ip}`)
+    .digest("hex");
 }
 
 /* =========================================================
@@ -553,6 +571,91 @@ app.get(
 );
 
 /* =========================================================
+   PUBLIC HOME DATA
+========================================================= */
+
+app.get("/api/home", async (req, res) => {
+  try {
+    const resources = ["projects", "blogs", "youtube", "research"];
+    const [contentResults, profileResult] = await Promise.all([
+      Promise.all(
+        resources.map((resource) =>
+          supabase
+            .from("content")
+            .select("id,resource,title,data,created_at,updated_at")
+            .eq("resource", resource)
+            .eq("data->>status", "published")
+            .order("id", { ascending: false })
+        )
+      ),
+      supabase
+        .from("profile")
+        .select("data")
+        .eq("id", 1)
+        .maybeSingle(),
+    ]);
+
+    const profileError = profileResult.error;
+    if (profileError) {
+      throw profileError;
+    }
+
+    const response = { profile: profileResult.data?.data || {} };
+
+    contentResults.forEach((result, index) => {
+      if (result.error) {
+        throw result.error;
+      }
+
+      response[resources[index]] = (result.data || []).map((row) => ({
+        id: row.id,
+        ...(row.data || {}),
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }));
+    });
+
+    return res.json(response);
+  } catch (error) {
+    console.error("HOME DATA ERROR:", error);
+    return res.status(500).json({ message: "Failed to load home data" });
+  }
+});
+
+/* =========================================================
+   RECORD PUBLIC VISITS
+========================================================= */
+
+app.post("/api/visits", async (req, res) => {
+  try {
+    const userAgent = String(req.headers["user-agent"] || "Unknown").slice(0, 500);
+    const referrer = String(req.headers.referer || "").slice(0, 500);
+    const page = typeof req.body?.page === "string"
+      ? req.body.page.slice(0, 200)
+      : "/";
+
+    const { error } = await supabase
+      .from("visitor_events")
+      .insert({
+        visitor_hash: getVisitorHash(req),
+        user_agent: userAgent,
+        referrer,
+        page,
+      });
+
+    if (error) {
+      console.error("VISITOR RECORD ERROR:", error.message);
+      return res.status(500).json({ message: "Could not record visit" });
+    }
+
+    return res.status(201).json({ ok: true });
+  } catch (error) {
+    console.error("VISITOR RECORD ERROR:", error);
+    return res.status(500).json({ message: "Could not record visit" });
+  }
+});
+
+/* =========================================================
    PUBLIC CONTENT
 ========================================================= */
 
@@ -665,6 +768,19 @@ app.get(
           count || 0;
       }
 
+      const { data: visitors, error: visitorError } = await supabase
+        .from("visitor_events")
+        .select("visitor_hash");
+
+      if (visitorError) {
+        throw visitorError;
+      }
+
+      result.visits = visitors?.length || 0;
+      result.uniqueVisitors = new Set(
+        (visitors || []).map((visitor) => visitor.visitor_hash)
+      ).size;
+
       return res.json(result);
     } catch (error) {
       console.error(
@@ -675,6 +791,39 @@ app.get(
       return res.status(500).json({
         message: error.message,
       });
+    }
+  }
+);
+
+/* =========================================================
+   ADMIN GET VISITORS
+========================================================= */
+
+app.get(
+  "/api/admin/visitors",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("visitor_events")
+        .select("id,visitor_hash,user_agent,referrer,page,visited_at")
+        .order("visited_at", { ascending: false })
+        .limit(100);
+
+      if (error) {
+        throw error;
+      }
+
+      return res.json(
+        (data || []).map((visitor) => ({
+          ...visitor,
+          visitor_id: visitor.visitor_hash.slice(0, 10),
+        }))
+      );
+    } catch (error) {
+      console.error("ADMIN VISITORS ERROR:", error);
+      return res.status(500).json({ message: error.message });
     }
   }
 );

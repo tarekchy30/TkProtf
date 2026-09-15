@@ -52,7 +52,7 @@ app.use(
       return callback(new Error("Not allowed by CORS"));
     },
 
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 
     allowedHeaders: [
       "Content-Type",
@@ -95,6 +95,7 @@ const allowed = [
   "blogs",
   "youtube",
   "experiments",
+  "products",
 ];
 
 /* =========================================================
@@ -107,7 +108,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
 
   limits: {
-    fileSize: 8 * 1024 * 1024,
+    fileSize: 25 * 1024 * 1024,
   },
 
   fileFilter: (req, file, cb) => {
@@ -117,12 +118,13 @@ const upload = multer({
       "image/webp",
       "image/gif",
       "image/avif",
+      "application/pdf",
     ];
 
     if (allowedMimeTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error("Only image files are allowed."));
+      cb(new Error("Only image or PDF files are allowed."));
     }
   },
 });
@@ -576,7 +578,7 @@ app.get(
 
 app.get("/api/home", async (req, res) => {
   try {
-    const resources = ["projects", "blogs", "youtube", "research"];
+    const resources = ["projects", "blogs", "youtube", "research", "products"];
     const [contentResults, profileResult] = await Promise.all([
       Promise.all(
         resources.map((resource) =>
@@ -656,8 +658,177 @@ app.post("/api/visits", async (req, res) => {
 });
 
 /* =========================================================
+   PUBLIC MODERATED GUESTBOOK
+========================================================= */
+
+app.get("/api/guestbook", async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from("guestbook_entries")
+      .select("id,name,message,role,created_at")
+      .eq("status", "approved")
+      .order("created_at", { ascending: false })
+      .limit(60);
+
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (error) {
+    console.error("GUESTBOOK READ ERROR:", error.message);
+    return res.status(500).json({ message: "Could not load guestbook" });
+  }
+});
+
+app.post("/api/guestbook", async (req, res) => {
+  try {
+    const name = String(req.body?.name || "").trim().slice(0, 80);
+    const message = String(req.body?.message || "").trim().slice(0, 500);
+    const role = String(req.body?.role || "").trim().slice(0, 100);
+    const website = String(req.body?.website || "").trim();
+
+    // Quiet honeypot for simple bots; do not tell a bot whether it worked.
+    if (website) return res.status(201).json({ ok: true });
+    if (name.length < 2 || message.length < 8) {
+      return res.status(400).json({
+        message: "Please provide a name and a message of at least 8 characters.",
+      });
+    }
+
+    const { data, error } = await supabase
+      .from("guestbook_entries")
+      .insert({
+        name,
+        message,
+        role,
+        status: "pending",
+        visitor_hash: getVisitorHash(req),
+      })
+      .select("id,name,message,role,status,created_at")
+      .single();
+
+    if (error) throw error;
+    return res.status(201).json({
+      ok: true,
+      status: data.status,
+      message: "Thanks — your note is waiting for moderation.",
+    });
+  } catch (error) {
+    console.error("GUESTBOOK SUBMIT ERROR:", error.message);
+    return res.status(500).json({ message: "Could not submit guestbook note" });
+  }
+});
+
+/* =========================================================
    PUBLIC CONTENT
 ========================================================= */
+
+app.get("/api/:resource/:id/reactions", async (req, res) => {
+  if (!["products", "projects"].includes(req.params.resource)) {
+    return res.status(404).json({ message: "Reaction resource not found" });
+  }
+  const productId = Number(req.params.id);
+  if (!Number.isInteger(productId)) {
+    return res.status(400).json({ message: "Invalid product id" });
+  }
+
+  try {
+    const visitorHash = getVisitorHash(req);
+    const [{ data: rows, error: rowsError }, { data: ownReaction, error: ownError }] = await Promise.all([
+      supabase
+        .from("product_reactions")
+        .select("reaction")
+        .eq("product_id", productId),
+      supabase
+        .from("product_reactions")
+        .select("reaction")
+        .eq("product_id", productId)
+        .eq("visitor_hash", visitorHash)
+        .maybeSingle(),
+    ]);
+
+    if (rowsError) throw rowsError;
+    if (ownError) throw ownError;
+    const reactionCounts = (rows || []).reduce((counts, row) => {
+      counts[row.reaction] = (counts[row.reaction] || 0) + 1;
+      return counts;
+    }, {});
+    return res.json({
+      reactions: reactionCounts,
+      selected: ownReaction?.reaction || null,
+      count: rows?.length || 0,
+      liked: Boolean(ownReaction),
+    });
+  } catch (error) {
+    console.error("PRODUCT REACTIONS LOAD ERROR:", error.message);
+    return res.status(500).json({ message: "Could not load product reactions" });
+  }
+});
+
+app.post("/api/:resource/:id/reactions", async (req, res) => {
+  if (!["products", "projects"].includes(req.params.resource)) {
+    return res.status(404).json({ message: "Reaction resource not found" });
+  }
+  const productId = Number(req.params.id);
+  if (!Number.isInteger(productId)) {
+    return res.status(400).json({ message: "Invalid product id" });
+  }
+
+  try {
+    const allowedReactions = new Set(["love", "fire", "like"]);
+    const reaction = String(req.body?.reaction || "love");
+    if (!allowedReactions.has(reaction)) {
+      return res.status(400).json({ message: "Invalid reaction type" });
+    }
+
+    const visitorHash = getVisitorHash(req);
+    const { data: existing, error: findError } = await supabase
+      .from("product_reactions")
+      .select("id,reaction")
+      .eq("product_id", productId)
+      .eq("visitor_hash", visitorHash)
+      .maybeSingle();
+
+    if (findError) throw findError;
+
+    if (existing?.reaction === reaction) {
+      const { error } = await supabase
+        .from("product_reactions")
+        .delete()
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else if (existing) {
+      const { error } = await supabase
+        .from("product_reactions")
+        .update({ reaction })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from("product_reactions")
+        .insert({ product_id: productId, reaction, visitor_hash: visitorHash });
+      if (error) throw error;
+    }
+
+    const { data: rows, error: rowsError } = await supabase
+      .from("product_reactions")
+      .select("reaction")
+      .eq("product_id", productId);
+
+    if (rowsError) throw rowsError;
+    const reactionCounts = (rows || []).reduce((counts, row) => {
+      counts[row.reaction] = (counts[row.reaction] || 0) + 1;
+      return counts;
+    }, {});
+    return res.json({
+      reactions: reactionCounts,
+      selected: existing?.reaction === reaction ? null : reaction,
+      count: rows?.length || 0,
+      liked: existing?.reaction !== reaction,
+    });
+  } catch (error) {
+    console.error("PRODUCT REACTION ERROR:", error.message);
+    return res.status(500).json({ message: "Could not update product reaction" });
+  }
+});
 
 app.get(
   "/api/:resource",
@@ -828,6 +999,119 @@ app.get(
   }
 );
 
+app.get(
+  "/api/admin/visitor-insights",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("visitor_events")
+        .select("visitor_hash,referrer,page,visited_at")
+        .order("visited_at", { ascending: false })
+        .limit(5000);
+
+      if (error) throw error;
+
+      const events = data || [];
+      const now = Date.now();
+      const recent = events.filter((event) => (
+        now - new Date(event.visited_at).getTime() <= 7 * 24 * 60 * 60 * 1000
+      ));
+      const countBy = (key, fallback) => Object.entries(
+        events.reduce((counts, event) => {
+          const value = String(event[key] || "").trim() || fallback;
+          counts[value] = (counts[value] || 0) + 1;
+          return counts;
+        }, {})
+      )
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([label, count]) => ({ label, count }));
+
+      return res.json({
+        last7Days: recent.length,
+        uniqueLast7Days: new Set(recent.map((event) => event.visitor_hash)).size,
+        topPages: countBy("page", "/"),
+        topReferrers: countBy("referrer", "Direct"),
+      });
+    } catch (error) {
+      console.error("VISITOR INSIGHTS ERROR:", error.message);
+      return res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+app.get(
+  "/api/admin/guestbook",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from("guestbook_entries")
+        .select("id,name,message,role,status,created_at,moderated_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return res.json(data || []);
+    } catch (error) {
+      console.error("ADMIN GUESTBOOK ERROR:", error.message);
+      return res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+app.patch(
+  "/api/admin/guestbook/:id",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const status = String(req.body?.status || "").toLowerCase();
+      if (!["pending", "approved", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Invalid moderation status" });
+      }
+
+      const { data, error } = await supabase
+        .from("guestbook_entries")
+        .update({
+          status,
+          moderated_at: new Date().toISOString(),
+          moderated_by: req.user.email || null,
+        })
+        .eq("id", req.params.id)
+        .select("id,name,message,role,status,created_at,moderated_at")
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return res.status(404).json({ message: "Guestbook entry not found" });
+      return res.json(data);
+    } catch (error) {
+      console.error("GUESTBOOK MODERATION ERROR:", error.message);
+      return res.status(500).json({ message: error.message });
+    }
+  }
+);
+
+app.delete(
+  "/api/admin/guestbook/:id",
+  auth,
+  adminOnly,
+  async (req, res) => {
+    try {
+      const { error } = await supabase
+        .from("guestbook_entries")
+        .delete()
+        .eq("id", req.params.id);
+      if (error) throw error;
+      return res.json({ ok: true });
+    } catch (error) {
+      console.error("GUESTBOOK DELETE ERROR:", error.message);
+      return res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 /* =========================================================
    ADMIN GET CONTENT
 ========================================================= */
@@ -946,6 +1230,28 @@ function buildContentData(
 
     cleanData.image =
       formData.image || "";
+  }
+
+  /* -------------------------------------------------------
+     DIGITAL PRODUCTS
+  ------------------------------------------------------- */
+
+  else if (resource === "products") {
+    cleanData.productType = formData.productType || "Digital product";
+    cleanData.framework = formData.framework || "React";
+    cleanData.downloadType = formData.downloadType === "paid" ? "paid" : "free";
+    cleanData.price = formData.price || "";
+    cleanData.currency = formData.currency || "USD";
+    cleanData.checkoutUrl = formData.checkoutUrl || "";
+    cleanData.freeDownloadUrl = formData.freeDownloadUrl || formData.pdfUrl || "";
+    cleanData.pdfUrl = formData.pdfUrl || "";
+    cleanData.previewUrl = formData.previewUrl || "";
+    cleanData.image = formData.image || "";
+    cleanData.features = Array.isArray(formData.features)
+      ? formData.features
+      : typeof formData.features === "string"
+      ? formData.features.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
   }
 
   /* -------------------------------------------------------

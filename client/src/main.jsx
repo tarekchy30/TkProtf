@@ -29,6 +29,7 @@ const ReactQuill = lazy(() =>
 
 import {
   ArrowUpRight,
+  ArrowDown,
   Github,
   Linkedin,
   Youtube as YT,
@@ -54,10 +55,40 @@ import {
   Save,
   X,
   Users,
+  Sparkles,
+  Compass,
+  Terminal,
+  Keyboard,
+  MousePointer2,
+  ShieldCheck,
+  Activity,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
+  RefreshCw,
+  Eye,
+  Search,
+  PenTool,
+  Hammer,
+  TestTube2,
+  MessageSquare,
+  LockKeyhole,
+  ShoppingBag,
+  PackageOpen,
 } from "lucide-react";
 
 import { api, API_BASE } from "./api";
 import "./styles.css";
+import "./reactions/reaction.css";
+import ReactionButtons from "./reactions/ReactionButtons";
+import { ReactionProvider } from "./reactions/ReactionContext";
+
+const favicon = document.querySelector('link[rel="icon"]') || document.createElement("link");
+favicon.rel = "icon";
+favicon.type = "image/png";
+favicon.href = logo;
+document.head.appendChild(favicon);
 
 /* =========================================================
    HELPERS
@@ -131,6 +162,18 @@ function getArrayValue(value) {
   return value || "";
 }
 
+function slugify(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function getContentRouteId(item) {
+  return String(getId(item) || slugify(item?.title) || "");
+}
+
 /* =========================================================
    NAVIGATION
 ========================================================= */
@@ -170,6 +213,11 @@ function Nav() {
       id: "contact",
       label: "Contact",
       icon: Mail,
+    },
+    {
+      id: "store",
+      label: "Store",
+      icon: ShoppingBag,
     },
   ];
 
@@ -216,8 +264,18 @@ function Nav() {
     setActive(id);
     setMenuOpen(false);
 
+    if (id === "store" && window.location.pathname !== "/") {
+      window.location.href = "/store";
+      return;
+    }
+
     const section =
       document.getElementById(id);
+
+    if (id === "store" && !section) {
+      window.location.href = "/store";
+      return;
+    }
 
     if (section) {
       section.scrollIntoView({
@@ -285,6 +343,7 @@ function Nav() {
                 {active === id && (
                   <span className="navActiveDot" />
                 )}
+
               </button>
             )
           )}
@@ -342,6 +401,1030 @@ function Nav() {
   );
 }
 
+function CommandPalette() {
+  const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [history, setHistory] = useState([
+    {
+      type: "system",
+      text: "Tarek OS ready. Type help to see available commands.",
+    },
+  ]);
+
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen((current) => !current);
+      } else if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      window.setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open]);
+
+  function scrollToSection(id) {
+    navigate("/");
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  function runCommand(value) {
+    const command = value.trim().toLowerCase();
+    if (!command) return;
+
+    if (command === "clear") {
+      setHistory([]);
+      setQuery("");
+      return;
+    }
+
+    const destinations = {
+      about: "about",
+      projects: "projects",
+      research: "research",
+      contact: "contact",
+    };
+
+    let response = "";
+    if (command === "help") {
+      response = "Available: help, about, projects, research, contact, clear.";
+    } else if (destinations[command]) {
+      scrollToSection(destinations[command]);
+      response = `Opening ${command}…`;
+    } else {
+      response = `Command not found: ${command}. Try help.`;
+    }
+
+    setHistory((current) => [
+      ...current,
+      { type: "command", text: `> ${command}` },
+      { type: "system", text: response },
+    ]);
+    setQuery("");
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        className="commandLauncher"
+        onClick={() => setOpen(true)}
+        aria-label="Open portfolio command palette"
+      >
+        <Terminal size={16} />
+        <span>Open terminal</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+
+      {open && (
+        <div
+          className="commandOverlay"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="commandPalette" role="dialog" aria-modal="true" aria-labelledby="command-title">
+            <div className="commandPaletteHeader">
+              <div>
+                <span className="commandEyebrow"><span className="consolePulse" /> TAREK OS</span>
+                <h2 id="command-title">Command palette</h2>
+              </div>
+              <button type="button" className="commandClose" onClick={() => setOpen(false)} aria-label="Close terminal">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="commandHistory" aria-live="polite">
+              {history.map((entry, index) => (
+                <div className={`commandLine ${entry.type}`} key={`${entry.text}-${index}`}>
+                  {entry.text}
+                </div>
+              ))}
+            </div>
+
+            <form
+              className="commandInputRow"
+              onSubmit={(event) => {
+                event.preventDefault();
+                runCommand(query);
+              }}
+            >
+              <span aria-hidden="true">$</span>
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="try: projects"
+                aria-label="Terminal command"
+                autoComplete="off"
+              />
+              <button type="submit" aria-label="Run command"><ArrowUpRight size={17} /></button>
+            </form>
+
+            <div className="commandSuggestions" aria-label="Available commands">
+              {["help", "about", "projects", "research", "contact", "clear"].map((command) => (
+                <button key={command} type="button" onClick={() => runCommand(command)}>
+                  {command}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function SystemStatus() {
+  const [state, setState] = useState("checking");
+  const [checkedAt, setCheckedAt] = useState(null);
+
+  async function checkStatus() {
+    setState("checking");
+    try {
+      await api("/health");
+      setState("operational");
+    } catch (error) {
+      console.warn("SYSTEM STATUS CHECK:", error.message);
+      setState("degraded");
+    } finally {
+      setCheckedAt(new Date());
+    }
+  }
+
+  useEffect(() => {
+    checkStatus();
+    const interval = window.setInterval(checkStatus, 60000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const isOperational = state === "operational";
+  const isChecking = state === "checking";
+  const statusLabel = isChecking ? "Checking" : isOperational ? "Operational" : "Degraded";
+
+  return (
+    <section className="systemStatusSection revealSection" aria-labelledby="system-status-title">
+      <div className="container">
+        <div className="systemStatusHeader">
+          <div>
+            <span className="sectionEyebrow">LIVE / SYSTEM STATUS</span>
+            <h2 id="system-status-title">The portfolio is online.</h2>
+            <p>Public services are checked without exposing private infrastructure details.</p>
+          </div>
+          <button type="button" className="statusRefresh" onClick={checkStatus} disabled={isChecking}>
+            <RefreshCw size={15} className={isChecking ? "spin" : ""} />
+            Check now
+          </button>
+        </div>
+
+        <div className="systemStatusGrid">
+          <div className={`systemStatusSummary ${state}`}>
+            {isOperational ? <CheckCircle2 size={25} /> : isChecking ? <Activity size={25} /> : <AlertTriangle size={25} />}
+            <div>
+              <strong>{statusLabel}</strong>
+              <span>{checkedAt ? `Last checked ${checkedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "Connecting to services…"}</span>
+            </div>
+          </div>
+          <div className="systemStatusItems">
+            {[
+              ["Portfolio API", isOperational],
+              ["Supabase content", isOperational],
+              ["Visitor telemetry", isOperational],
+            ].map(([label, online]) => (
+              <div className="systemStatusItem" key={label}>
+                <span className={`statusIndicator ${isChecking ? "checking" : online ? "online" : "offline"}`} />
+                <span>{label}</span>
+                <small>{isChecking ? "checking" : online ? "online" : "retrying"}</small>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function getPasswordStrength(password) {
+  const checks = [
+    password.length >= 8,
+    /[A-Z]/.test(password),
+    /[a-z]/.test(password),
+    /\d/.test(password),
+    /[^A-Za-z0-9]/.test(password),
+  ];
+  const score = checks.filter(Boolean).length;
+  const labels = ["Start typing", "Very weak", "Weak", "Fair", "Strong", "Excellent"];
+  return { score, checks, label: labels[score] };
+}
+
+function PasswordStrengthDemo() {
+  const [password, setPassword] = useState("");
+  const strength = getPasswordStrength(password);
+
+  return (
+    <div className="labCard passwordLab">
+      <div className="labCardHeader">
+        <span className="labIndex">01</span>
+        <span className="labTag"><ShieldCheck size={14} /> PRIVACY-FIRST</span>
+      </div>
+      <h3>Password strength checker</h3>
+      <p>Test a password locally. Nothing is sent anywhere.</p>
+      <label className="labInputLabel" htmlFor="password-lab-input">Try a sample password</label>
+      <input
+        id="password-lab-input"
+        className="labInput"
+        type="password"
+        value={password}
+        onChange={(event) => setPassword(event.target.value)}
+        placeholder="Type to analyze"
+      />
+      <div className="strengthMeter" aria-label={`${strength.label} password strength`}>
+        {[1, 2, 3, 4, 5].map((level) => (
+          <span key={level} className={level <= strength.score ? `level-${strength.score}` : ""} />
+        ))}
+      </div>
+      <div className="strengthMeta">
+        <strong>{strength.label}</strong>
+        <span>{strength.score}/5 checks</span>
+      </div>
+      <ul className="labChecks">
+        {["8+ characters", "Uppercase letter", "Lowercase letter", "Number", "Symbol"].map((label, index) => (
+          <li className={strength.checks[index] ? "passed" : ""} key={label}>
+            <span>{strength.checks[index] ? "✓" : "○"}</span>{label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function ActivityDemo() {
+  const [activity, setActivity] = useState({ keys: 0, clicks: 0, moves: 0, signal: [] });
+  const moveFrame = useRef(null);
+
+  useEffect(() => {
+    const onKey = () => setActivity((current) => ({ ...current, keys: current.keys + 1, signal: [...current.signal.slice(-23), 70 + Math.random() * 30] }));
+    const onClick = () => setActivity((current) => ({ ...current, clicks: current.clicks + 1, signal: [...current.signal.slice(-23), 42 + Math.random() * 28] }));
+    const onMove = () => {
+      if (moveFrame.current) return;
+      moveFrame.current = window.requestAnimationFrame(() => {
+        moveFrame.current = null;
+        setActivity((current) => ({ ...current, moves: current.moves + 1, signal: [...current.signal.slice(-23), 18 + Math.random() * 30] }));
+      });
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("click", onClick);
+    window.addEventListener("pointermove", onMove, { passive: true });
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("pointermove", onMove);
+      if (moveFrame.current) window.cancelAnimationFrame(moveFrame.current);
+    };
+  }, []);
+
+  return (
+    <div className="labCard activityLab">
+      <div className="labCardHeader">
+        <span className="labIndex">02</span>
+        <span className="labTag"><Activity size={14} /> LIVE INPUT</span>
+      </div>
+      <h3>Interaction signal</h3>
+      <p>Move, click or type anywhere to shape this tiny activity visualization.</p>
+      <div className="activityBars" aria-label="Live interaction visualization">
+        {(activity.signal.length ? activity.signal : [18, 28, 22, 38, 26, 46, 31, 55]).map((height, index) => (
+          <span key={`${height}-${index}`} style={{ height: `${height}%` }} />
+        ))}
+      </div>
+      <div className="activityStats">
+        <span><Keyboard size={15} /><strong>{activity.keys}</strong><small>keys</small></span>
+        <span><MousePointer2 size={15} /><strong>{activity.moves}</strong><small>moves</small></span>
+        <span><span className="clickGlyph">●</span><strong>{activity.clicks}</strong><small>clicks</small></span>
+      </div>
+      <small className="labFootnote">Counts stay in this tab and reset on refresh.</small>
+    </div>
+  );
+}
+
+function ProjectLab() {
+  return (
+    <section id="lab" className="projectLabSection revealSection" aria-labelledby="project-lab-title">
+      <div className="container">
+        <div className="labHeader">
+          <div>
+            <span className="sectionEyebrow">07 / DIGITAL LABORATORY</span>
+            <h2 id="project-lab-title">Small tools. Useful ideas.</h2>
+          </div>
+          <p>Hands-on demos built with browser APIs and plain React—no extra dependencies required.</p>
+        </div>
+        <LabPipeline />
+        <div className="labGrid">
+          <PasswordStrengthDemo />
+          <ActivityDemo />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const visitorPaths = [
+  {
+    id: "hire",
+    label: "I want to hire a builder",
+    icon: UserRound,
+    description: "See practical builds, technical range and the fastest way to start a conversation.",
+    keywords: ["software", "web", "app", "api", "react", "node", "portfolio", "full"],
+    links: ["projects", "contact"],
+  },
+  {
+    id: "ai",
+    label: "I’m exploring AI and research",
+    icon: BrainCircuit,
+    description: "Follow the experiments where curiosity becomes a tested idea.",
+    keywords: ["ai", "machine", "learning", "research", "behavior", "vision", "model", "data"],
+    links: ["research", "projects", "youtube"],
+  },
+  {
+    id: "learn",
+    label: "I want to learn something",
+    icon: BookOpen,
+    description: "Find tutorials and explainers that are useful beyond a quick demo.",
+    keywords: ["learn", "tutorial", "guide", "android", "security", "coding", "programming"],
+    links: ["youtube", "projects", "research"],
+  },
+  {
+    id: "collaborate",
+    label: "I have an idea to explore",
+    icon: Compass,
+    description: "Understand how I move from an open question to a working experiment.",
+    keywords: ["iot", "sensor", "hardware", "security", "experiment", "build", "research"],
+    links: ["projects", "research", "contact"],
+  },
+];
+
+function ChooseYourPath({ projects, blogs, videos, research }) {
+  const [selectedId, setSelectedId] = useState("hire");
+  const selectedPath = visitorPaths.find((path) => path.id === selectedId) || visitorPaths[0];
+  const PathIcon = selectedPath.icon;
+
+  const recommendations = useMemo(() => {
+    const sources = [
+      ...projects.map((item) => ({ ...item, source: "Project", target: "#projects" })),
+      ...research.map((item) => ({ ...item, source: "Research", target: "#research" })),
+      ...videos.map((item) => ({ ...item, source: "Tutorial", target: "#youtube" })),
+      ...blogs.map((item) => ({ ...item, source: "Article", target: "#blog" })),
+    ];
+    const ranked = sources
+      .map((item, index) => {
+        const haystack = [item.title, item.description, item.category, item.content, item.tech, item.tags]
+          .flatMap((value) => Array.isArray(value) ? value : [value])
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const score = selectedPath.keywords.reduce((total, keyword) => total + (haystack.includes(keyword) ? 1 : 0), 0);
+        return { item, score, index };
+      })
+      .sort((a, b) => b.score - a.score || a.index - b.index);
+    return ranked.slice(0, 3).map(({ item }) => item);
+  }, [blogs, projects, research, selectedPath, videos]);
+
+  return (
+    <section id="pathfinder" className="pathfinderSection revealSection" aria-labelledby="pathfinder-title">
+      <div className="container">
+        <div className="pathfinderHeader">
+          <div>
+            <span className="sectionEyebrow">08 / FIND YOUR PATH</span>
+            <h2 id="pathfinder-title">Start where it matters to you.</h2>
+          </div>
+          <p>Tell me what brought you here. I’ll turn the portfolio into a short, useful route instead of making you search through everything.</p>
+        </div>
+
+        <div className="pathfinder">
+          <div className="pathChoices" role="group" aria-label="Choose what you want to explore">
+            {visitorPaths.map((path) => {
+              const Icon = path.icon;
+              return (
+                <button
+                  type="button"
+                  key={path.id}
+                  className={`pathChoice ${selectedId === path.id ? "active" : ""}`}
+                  onClick={() => setSelectedId(path.id)}
+                  aria-pressed={selectedId === path.id}
+                >
+                  <Icon size={18} />
+                  <span>{path.label}</span>
+                  <ArrowUpRight size={14} />
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pathResults" aria-live="polite">
+            <div className="pathResultIntro">
+              <span className="pathResultIcon"><PathIcon size={20} /></span>
+              <div>
+                <span className="pathResultKicker">YOUR RECOMMENDED ROUTE</span>
+                <h3>{selectedPath.label}</h3>
+                <p>{selectedPath.description}</p>
+              </div>
+            </div>
+            <div className="pathResultList">
+              {recommendations.length ? recommendations.map((item, index) => (
+                <a className="pathResult" href={item.target} key={`${getId(item) || item.title}-${index}`}>
+                  <span className="pathResultNumber">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="pathResultCopy">
+                    <small>{item.source}</small>
+                    <strong>{item.title || "Explore this section"}</strong>
+                    <span>{item.description || "Open this part of the portfolio to explore the details."}</span>
+                  </span>
+                  <ArrowUpRight size={16} />
+                </a>
+              )) : (
+                <p className="pathEmpty">Content is loading. Choose a route again in a moment.</p>
+              )}
+            </div>
+            <a className="pathContactLink" href={selectedPath.links.includes("contact") ? "#contact" : `#${selectedPath.links[0]}`}>
+              Continue to {selectedPath.links[0]} <ArrowUpRight size={14} />
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DigitalStore({ products = [], fullPage = false }) {
+  const [downloadFx, setDownloadFx] = useState(null);
+  const [reactions, setReactions] = useState({});
+  const [reactionError, setReactionError] = useState("");
+
+  useEffect(() => {
+    const themeProducts = products.filter((product) => {
+      const type = String(product.productType || "").toLowerCase();
+      return product.id && (type.includes("theme") || type.includes("website"));
+    });
+
+    Promise.all(
+      themeProducts.map(async (product) => {
+        try {
+          const data = await api(`/products/${product.id}/reactions`);
+          return [String(product.id), data];
+        } catch (error) {
+          console.error("PRODUCT REACTIONS LOAD ERROR:", error);
+          return [String(product.id), { reactions: {}, selected: null, unavailable: true }];
+        }
+      })
+    ).then((entries) => setReactions(Object.fromEntries(entries)));
+  }, [products]);
+
+  async function downloadProduct(product, event) {
+    const source = getImageUrl(product.freeDownloadUrl || product.pdfUrl);
+    if (!source) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    setDownloadFx({
+      title: product.title,
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+      state: "downloading",
+    });
+
+    try {
+      const response = await fetch(source);
+      if (!response.ok) throw new Error("Download failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = `${slugify(product.title) || "digital-product"}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(objectUrl);
+      setDownloadFx((current) => current ? { ...current, state: "complete" } : current);
+    } catch (error) {
+      console.error("PRODUCT DOWNLOAD ERROR:", error);
+      window.open(source, "_blank", "noopener,noreferrer");
+      setDownloadFx((current) => current ? { ...current, state: "complete" } : current);
+    }
+
+    window.setTimeout(() => setDownloadFx(null), 2200);
+  }
+
+  const [category, setCategory] = useState("all");
+  const [query, setQuery] = useState("");
+  const visibleProducts = products.filter((product) => product.status !== "draft");
+  const filteredProducts = visibleProducts.filter((product) => {
+    const type = String(product.productType || "").toLowerCase();
+    const matchesCategory = category === "all" || (category === "books" && type.includes("book")) || (category === "themes" && (type.includes("theme") || type.includes("website"))) || (category === "resources" && !type.includes("book") && !type.includes("theme") && !type.includes("website"));
+    const matchesQuery = !query.trim() || `${product.title} ${product.description} ${product.productType}`.toLowerCase().includes(query.toLowerCase());
+    return matchesCategory && matchesQuery;
+  });
+
+  return (
+    <>
+    {downloadFx && (
+      <div
+        className={`downloadFlight ${downloadFx.state}`}
+        style={{ "--download-x": `${downloadFx.x}px`, "--download-y": `${downloadFx.y}px` }}
+        role="status"
+        aria-live="polite"
+      >
+        <span className="downloadFlightIcon"><ArrowDown size={16} /></span>
+        <span>{downloadFx.state === "complete" ? "Download started" : "Preparing download..."}</span>
+      </div>
+    )}
+    {reactionError && <div className="storeReactionNotice" role="status">{reactionError}</div>}
+    <section id={fullPage ? undefined : "store"} className={`digitalStoreSection ${fullPage ? "storePageSection" : "revealSection"}`} aria-labelledby="store-title">
+      <div className="container">
+        <div className="storeHero">
+          <div><span className="sectionEyebrow">09 / DIGITAL MARKET</span><h2 id="store-title">Books, themes and useful digital products.</h2><p>Discover practical resources made to help you learn, launch and build better.</p></div>
+          <div className="storeHeroOrb"><ShoppingBag size={28} /><span>CURATED<br />DIGITAL GOODS</span></div>
+        </div>
+        <div className="storeToolbar">
+          <div className="storeCategories">
+            {[['all', 'All products'], ['books', 'Books'], ['themes', 'Website themes'], ['resources', 'Resources']].map(([id, label]) => <button key={id} type="button" className={category === id ? "active" : ""} onClick={() => setCategory(id)}>{label}</button>)}
+          </div>
+          <label className="storeSearch"><Search size={16} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products" /></label>
+        </div>
+        {filteredProducts.length ? <div className="storeGrid">
+          {filteredProducts.map((product, index) => {
+            const isBook = String(product.productType || "").toLowerCase().includes("book");
+            const isTheme = String(product.productType || "").toLowerCase().includes("theme") || String(product.productType || "").toLowerCase().includes("website");
+            const isFree = product.downloadType === "free" || (!product.price && !product.checkoutUrl);
+            const framework = product.framework || (Array.isArray(product.technology) ? product.technology[0] : "") || "React";
+            const views = product.views || "";
+            return <article className={`storeCard ${isBook ? "bookProductCard" : ""} ${isTheme ? "themeProductCard" : ""}`} key={getId(product) || `${product.title}-${index}`}>
+              <div className="storeCardVisual">{product.image ? <img src={getImageUrl(product.image)} alt="" loading="lazy" /> : <PackageOpen size={34} />}<span>{product.productType || "DIGITAL PRODUCT"}</span>{product.rating && <b className="storeRating">★ {product.rating}</b>}</div>
+              <div className="storeCardBody">
+                {isTheme && <div className="themeCreatorRow"><span className="themeCreatorAvatar">T</span><h3>{product.title}</h3><span className="themeFramework">{framework}</span><ReactionButtons productId={product.id} value={reactions[String(product.id)]} onChange={(data) => { setReactions((current) => ({ ...current, [String(product.id)]: data })); setReactionError(""); }} onError={setReactionError} /><span className="themeStat"><Eye size={15} /> {views || "—"}</span></div>}
+                {!isTheme && <><div className="storeCardMeta"><small>{isBook ? "BOOK" : "ITEM"} · {String(index + 1).padStart(2, "0")}</small>{isFree ? <strong className="freeLabel">FREE</strong> : product.price && <strong>{product.currency || "USD"} {product.price}</strong>}</div>
+                <h3>{product.title}</h3><p>{product.description}</p>{Array.isArray(product.features) && product.features.length > 0 && <ul>{product.features.slice(0, 3).map((feature) => <li key={feature}>{feature}</li>)}</ul>}</>}
+                <div className="storeCardActions">
+                  {product.previewUrl && <a href={product.previewUrl} target="_blank" rel="noreferrer">Live preview <ExternalLink size={14} /></a>}
+                  {isFree && (product.freeDownloadUrl || product.pdfUrl) && (
+                    <button className="storeFreeButton" type="button" onClick={(event) => downloadProduct(product, event)}>
+                      {isTheme ? "Download theme" : "Download"} <ArrowUpRight size={15} />
+                    </button>
+                  )}
+                  {!isFree && (product.checkoutUrl || isTheme) && (
+                    <a
+                      className="storeBuyButton"
+                      href={product.checkoutUrl || "/#contact"}
+                      target={product.checkoutUrl ? "_blank" : undefined}
+                      rel={product.checkoutUrl ? "noreferrer" : undefined}
+                    >
+                      {isTheme ? "Buy me a coffee" : "Buy now"} <ArrowUpRight size={15} />
+                    </a>
+                  )}
+                  {!isFree && !product.checkoutUrl && !isTheme && (
+                    <a className="storeBuyButton" href="/#contact">
+                      Request access <MessageSquare size={15} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </article>;
+          })}
+        </div> : <div className="storeEmpty"><ShoppingBag size={22} /><strong>{visibleProducts.length ? "No products match your search." : "New digital products are coming soon."}</strong><span>{visibleProducts.length ? "Try another category or search term." : "Add books, website themes and resources from the admin panel."}</span></div>}
+      </div>
+    </section>
+    </>
+  );
+}
+function StorePage() {
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    api("/products")
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch((loadError) => setError(loadError.message || "Could not load the store."));
+  }, []);
+
+  return (
+    <>
+      <Nav />
+      {error ? <div className="container note">{error}</div> : <DigitalStore products={products} fullPage />}
+    </>
+  );
+}
+
+function Guestbook() {
+  const [entries, setEntries] = useState([]);
+  const [form, setForm] = useState({ name: "", role: "", message: "", website: "" });
+  const [state, setState] = useState("idle");
+  const [feedback, setFeedback] = useState("");
+
+  async function loadEntries() {
+    try {
+      const data = await api("/guestbook");
+      setEntries(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.warn("GUESTBOOK LOAD ERROR:", error.message);
+    }
+  }
+
+  useEffect(() => {
+    loadEntries();
+  }, []);
+
+  async function submit(event) {
+    event.preventDefault();
+    setState("loading");
+    setFeedback("");
+    try {
+      await api("/guestbook", { method: "POST", body: JSON.stringify(form) });
+      setForm({ name: "", role: "", message: "", website: "" });
+      setState("success");
+      setFeedback("Thanks — your note is in the moderation queue.");
+    } catch (error) {
+      setState("error");
+      setFeedback(error.message || "Could not submit your note.");
+    }
+  }
+
+  return (
+    <section id="guestbook" className="guestbookSection revealSection" aria-labelledby="guestbook-title">
+      <div className="container">
+        <div className="guestbookHeader">
+          <div>
+            <span className="sectionEyebrow">09 / GUESTBOOK</span>
+            <h2 id="guestbook-title">Leave a signal.</h2>
+          </div>
+          <p>A moderated wall for thoughtful notes, build feedback and kind hellos. Your message appears after approval.</p>
+        </div>
+        <div className="guestbookGrid">
+          <form className="guestbookForm" onSubmit={submit}>
+            <div className="guestbookFormRow">
+              <label>Name<input required minLength={2} maxLength={80} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="Your name" /></label>
+              <label>Role <span>(optional)</span><input maxLength={100} value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} placeholder="Builder, student..." /></label>
+            </div>
+            <label>Message<textarea required minLength={8} maxLength={500} rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} placeholder="What did you discover here?" /></label>
+            <input className="guestbookHoneypot" tabIndex="-1" autoComplete="off" aria-hidden="true" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} />
+            <div className="guestbookFormFooter">
+              <small>Messages are reviewed before they go public.</small>
+              <button type="submit" className="heroPrimaryBtn" disabled={state === "loading"}>{state === "loading" ? "Sending..." : "Sign the guestbook"} <MessageSquare size={16} /></button>
+            </div>
+            {feedback && <p className={`guestbookFeedback ${state}`}>{feedback}</p>}
+          </form>
+          <div className="guestbookWall">
+            {entries.length ? entries.map((entry) => (
+              <article className="guestbookNote" key={entry.id}>
+                <div><strong>{entry.name}</strong><small>{entry.role || "Visitor"}</small></div>
+                <p>“{entry.message}”</p>
+                <time>{formatDate(entry.created_at)}</time>
+              </article>
+            )) : <div className="guestbookEmpty">The wall is quiet for now.<br />Be the first approved note.</div>}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SecretInteractions() {
+  const [focusMode, setFocusMode] = useState(false);
+  const [konami, setKonami] = useState(false);
+  const [toast, setToast] = useState("");
+  const code = useRef([]);
+
+  useEffect(() => {
+    const konamiKeys = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+    const onKeyDown = (event) => {
+      if (event.key.toLowerCase() === "t" && !["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName)) {
+        setFocusMode((current) => {
+          const next = !current;
+          document.body.classList.toggle("focusMode", next);
+          setToast(next ? "Focus mode on — T to toggle" : "Focus mode off");
+          return next;
+        });
+      }
+      code.current = [...code.current, event.key].slice(-konamiKeys.length);
+      if (code.current.every((key, index) => key.toLowerCase() === konamiKeys[index].toLowerCase())) {
+        setKonami(true);
+        setToast("Secret unlocked — welcome, curious builder.");
+        code.current = [];
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = window.setTimeout(() => setToast(""), 3200);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  return (
+    <>
+      {konami && <div className="konamiBadge" role="status">★ curiosity mode unlocked <button type="button" onClick={() => setKonami(false)} aria-label="Dismiss secret">×</button></div>}
+      {toast && !konami && <div className="secretToast" role="status">{toast}</div>}
+    </>
+  );
+}
+
+const skillNodes = [
+  {
+    id: "software",
+    label: "Software",
+    icon: Code2,
+    detail: "Product-minded web experiences, APIs and tools that turn messy ideas into useful systems.",
+    tools: "React · Node.js · SQLite",
+    x: 50,
+    y: 50,
+  },
+  {
+    id: "mobile",
+    label: "Mobile",
+    icon: Smartphone,
+    detail: "Small, focused mobile apps with clear flows and interfaces that feel good to use.",
+    tools: "Android · React Native",
+    x: 18,
+    y: 22,
+  },
+  {
+    id: "iot",
+    label: "IoT",
+    icon: Cpu,
+    detail: "Connecting sensors, hardware and software into experiments you can see and measure.",
+    tools: "ESP32 · Sensors · MQTT",
+    x: 82,
+    y: 25,
+  },
+  {
+    id: "ai",
+    label: "AI / ML",
+    icon: BrainCircuit,
+    detail: "Exploring practical intelligence: computer vision, useful automation and data-informed decisions.",
+    tools: "Python · Vision · Models",
+    x: 83,
+    y: 77,
+  },
+  {
+    id: "security",
+    label: "Security",
+    icon: ShieldCheck,
+    detail: "Learning to build with privacy, resilient defaults and a healthy curiosity about failure modes.",
+    tools: "Web security · Privacy",
+    x: 17,
+    y: 77,
+  },
+  {
+    id: "research",
+    label: "Research",
+    icon: FlaskConical,
+    detail: "Keeping questions open long enough to test assumptions and find a better direction.",
+    tools: "Experiments · Notes · Iteration",
+    x: 50,
+    y: 13,
+  },
+];
+
+function SkillsConstellation() {
+  const [activeId, setActiveId] = useState("software");
+  const activeSkill = skillNodes.find((skill) => skill.id === activeId) || skillNodes[0];
+  const ActiveIcon = activeSkill.icon;
+
+  return (
+    <section id="skills" className="skillsSection revealSection" aria-labelledby="skills-title">
+      <div className="container">
+        <div className="skillsHeader">
+          <div>
+            <span className="sectionEyebrow">01 / SKILLS CONSTELLATION</span>
+            <h2 id="skills-title">A map of what I’m building toward.</h2>
+          </div>
+          <p>Choose a node to see how the disciplines connect. The center is always the next experiment.</p>
+        </div>
+
+        <div className="skillsConstellation">
+          <div className="skillsMap" aria-label="Interactive technology map">
+            <svg className="skillsConnections" viewBox="0 0 100 100" aria-hidden="true">
+              {skillNodes.slice(1).map((skill) => (
+                <line
+                  key={skill.id}
+                  x1="50"
+                  y1="50"
+                  x2={skill.x}
+                  y2={skill.y}
+                  className={activeId === skill.id || activeId === "software" ? "is-connected" : ""}
+                />
+              ))}
+              <line x1="18" y1="22" x2="50" y2="13" className={activeId === "research" ? "is-connected" : ""} />
+              <line x1="82" y1="25" x2="83" y2="77" className={activeId === "ai" ? "is-connected" : ""} />
+              <line x1="17" y1="77" x2="18" y2="22" className={activeId === "mobile" ? "is-connected" : ""} />
+            </svg>
+
+            <div className="skillsMapCore" aria-hidden="true">
+              <Sparkles size={18} />
+              <span>BUILD</span>
+            </div>
+
+            {skillNodes.map((skill) => {
+              const Icon = skill.icon;
+              const isActive = activeId === skill.id;
+              return (
+                <button
+                  type="button"
+                  key={skill.id}
+                  className={`skillNode ${isActive ? "active" : ""} ${skill.id === "software" ? "skillNodeCore" : ""}`}
+                  style={{ left: `${skill.x}%`, top: `${skill.y}%` }}
+                  aria-pressed={isActive}
+                  aria-label={`Explore ${skill.label}`}
+                  onClick={() => setActiveId(skill.id)}
+                >
+                  <span className="skillNodeIcon"><Icon size={18} /></span>
+                  <span>{skill.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="skillDetail" aria-live="polite">
+            <div className="skillDetailTop">
+              <span className="skillDetailIcon"><ActiveIcon size={21} /></span>
+              <span className="skillDetailIndex">{String(skillNodes.findIndex((skill) => skill.id === activeId) + 1).padStart(2, "0")} / 06</span>
+            </div>
+            <h3>{activeSkill.label}</h3>
+            <p>{activeSkill.detail}</p>
+            <div className="skillTools"><span>EXPLORING WITH</span><strong>{activeSkill.tools}</strong></div>
+            <div className="skillDetailHint"><span className="statusDot" /> Select another node to trace the next connection</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const processStages = [
+  { title: "Observe", icon: Eye, summary: "Start with the person, constraint or signal.", detail: "I look for the real problem behind the request—what is happening now, what feels difficult and what evidence can guide the first move.", output: "A sharper question" },
+  { title: "Research", icon: Search, summary: "Gather context before choosing a direction.", detail: "I read, compare approaches and run small probes so the solution is grounded in context instead of assumptions.", output: "Useful constraints" },
+  { title: "Design", icon: PenTool, summary: "Make the idea visible and testable.", detail: "Flows, interfaces and system boundaries become concrete here. A good design makes the next decision easier.", output: "A clear blueprint" },
+  { title: "Build", icon: Hammer, summary: "Turn the smallest useful slice into reality.", detail: "I build in short loops, keeping the code understandable and the feedback close to the work.", output: "A working slice" },
+  { title: "Test", icon: TestTube2, summary: "Challenge the happy path.", detail: "I test behavior, edge cases and the experience itself—because reliability is part of the design, not a final polish step.", output: "Honest feedback" },
+  { title: "Improve", icon: RefreshCw, summary: "Keep what works. Rework what does not.", detail: "Every release is a new observation. I document the lesson, improve the system and carry the learning forward.", output: "The next iteration" },
+];
+
+function ProcessTimeline() {
+  const [activeStage, setActiveStage] = useState(0);
+  const timelineRef = useRef(null);
+
+  useEffect(() => {
+    const updateActiveStage = () => {
+      if (!timelineRef.current) return;
+      const cards = [...timelineRef.current.querySelectorAll(".processStage")];
+      const target = window.innerHeight * 0.42;
+      let closest = 0;
+      let distance = Number.POSITIVE_INFINITY;
+      cards.forEach((card, index) => {
+        const nextDistance = Math.abs(card.getBoundingClientRect().top - target);
+        if (nextDistance < distance) {
+          distance = nextDistance;
+          closest = index;
+        }
+      });
+      setActiveStage(closest);
+    };
+
+    updateActiveStage();
+    window.addEventListener("scroll", updateActiveStage, { passive: true });
+    window.addEventListener("resize", updateActiveStage);
+    return () => {
+      window.removeEventListener("scroll", updateActiveStage);
+      window.removeEventListener("resize", updateActiveStage);
+    };
+  }, []);
+
+  return (
+    <section id="process" className="processSection revealSection" aria-labelledby="process-title" ref={timelineRef}>
+      <div className="container">
+        <div className="processHeader">
+          <div>
+            <span className="sectionEyebrow">03 / ENGINEERING PROCESS</span>
+            <h2 id="process-title">Curiosity, with a repeatable loop.</h2>
+          </div>
+          <p>Scroll through the stages I use to turn an open-ended idea into something useful—and keep improving it.</p>
+        </div>
+
+        <div className="processTimeline">
+          <div className="processTrack" aria-hidden="true"><span style={{ height: `${(activeStage / (processStages.length - 1)) * 100}%` }} /></div>
+          {processStages.map((stage, index) => {
+            const Icon = stage.icon;
+            const isActive = activeStage === index;
+            return (
+              <article className={`processStage ${isActive ? "active" : ""}`} key={stage.title}>
+                <button type="button" className="processMarker" onClick={() => setActiveStage(index)} aria-label={`Show ${stage.title} stage`} aria-pressed={isActive}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <Icon size={17} />
+                </button>
+                <div className="processStageBody">
+                  <span className="processStageKicker">STAGE {String(index + 1).padStart(2, "0")}</span>
+                  <h3>{stage.title}</h3>
+                  <p>{stage.summary}</p>
+                  <div className="processStageDetail">
+                    <span>{stage.detail}</span>
+                    <strong>OUTPUT / {stage.output}</strong>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const labStages = [
+  { title: "Collect signals", label: "01", icon: Activity, detail: "Observe the inputs: a cursor move, a password check, a question or a rough idea." },
+  { title: "Shape a hypothesis", label: "02", icon: BrainCircuit, detail: "Turn those signals into a small, testable interaction instead of a giant first release." },
+  { title: "Make it tangible", label: "03", icon: Code2, detail: "Build the useful slice with browser APIs and plain React, keeping the experiment readable." },
+  { title: "Measure & improve", label: "04", icon: RefreshCw, detail: "Notice what works, adjust the edges and let the next experiment inherit the learning." },
+];
+
+function LabPipeline() {
+  const [progress, setProgress] = useState(0);
+  const [selectedStage, setSelectedStage] = useState(0);
+  const pipelineRef = useRef(null);
+
+  useEffect(() => {
+    const updateProgress = () => {
+      const element = pipelineRef.current;
+      if (!element) return;
+      const rect = element.getBoundingClientRect();
+      const range = Math.max(rect.height + window.innerHeight * 0.45, 1);
+      const next = Math.max(0, Math.min(1, (window.innerHeight * 0.72 - rect.top) / range));
+      setProgress(next);
+      setSelectedStage(Math.min(labStages.length - 1, Math.floor(next * labStages.length)));
+    };
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    window.addEventListener("resize", updateProgress);
+    return () => {
+      window.removeEventListener("scroll", updateProgress);
+      window.removeEventListener("resize", updateProgress);
+    };
+  }, []);
+
+  const currentStage = labStages[selectedStage];
+  const CurrentIcon = currentStage.icon;
+
+  return (
+    <div className="labPipeline" ref={pipelineRef}>
+      <div className="labPipelineVisual">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <path d="M14 16 C 48 4, 86 18, 75 48 S 34 58, 24 83" />
+          <path d="M14 16 C 35 39, 54 42, 75 48" className="labPipelineCross" />
+        </svg>
+        <span className="labPipelineProgress" style={{ height: `${progress * 100}%` }} />
+        {labStages.map((stage, index) => {
+          const Icon = stage.icon;
+          const isActive = selectedStage === index;
+          return (
+            <button
+              type="button"
+              key={stage.title}
+              className={`labPipelineNode ${isActive ? "active" : ""} ${index < selectedStage ? "complete" : ""}`}
+              style={{ "--node-position": `${16 + index * 22}%` }}
+              onClick={() => setSelectedStage(index)}
+              aria-label={`Show laboratory stage ${stage.label}: ${stage.title}`}
+              aria-pressed={isActive}
+            >
+              <Icon size={15} />
+              <span>{stage.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="labPipelineCopy" aria-live="polite">
+        <span className="sectionEyebrow">SCROLL-DRIVEN WORKBENCH</span>
+        <div className="labPipelineTitle"><CurrentIcon size={20} /><span>{currentStage.title}</span></div>
+        <p>{currentStage.detail}</p>
+        <div className="labPipelineMeta"><span>LAB PROGRESS</span><strong>{Math.round(progress * 100)}%</strong></div>
+        <div className="labPipelineBar"><span style={{ width: `${progress * 100}%` }} /></div>
+        <div className="labPipelineSteps">{labStages.map((stage, index) => <button type="button" key={stage.title} className={selectedStage === index ? "active" : ""} onClick={() => setSelectedStage(index)}>{stage.title}</button>)}</div>
+      </div>
+    </div>
+  );
+}
+
 /* =========================================================
    HOME - Simplified
 ========================================================= */
@@ -357,8 +1440,53 @@ function Home() {
   const [v, setV] = useState([]);
   const [profile, setProfile] = useState({});
   const [research, setResearch] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [projectReactions, setProjectReactions] = useState({});
   const [playingVideo, setPlayingVideo] = useState(null);
   const [typedAbout, setTypedAbout] = useState("");
+  const [exploreProgress, setExploreProgress] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showExitPrompt, setShowExitPrompt] = useState(false);
+  const [suggestion, setSuggestion] = useState("");
+
+  useEffect(() => {
+    const showTimer = window.setTimeout(() => setShowWelcome(true), 450);
+    const hideTimer = window.setTimeout(() => setShowWelcome(false), 8500);
+
+    return () => {
+      window.clearTimeout(showTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    const exitKey = "portfolio-exit-prompt-shown";
+    const canShow = () =>
+      window.innerWidth > 700 &&
+      !sessionStorage.getItem(exitKey) &&
+      !showExitPrompt;
+
+    function handleExitIntent(event) {
+      if (event.clientY <= 0 && canShow()) {
+        sessionStorage.setItem(exitKey, "1");
+        setShowExitPrompt(true);
+      }
+    }
+
+    document.addEventListener("mouseout", handleExitIntent);
+    return () => document.removeEventListener("mouseout", handleExitIntent);
+  }, [showExitPrompt]);
+
+  function sendSuggestion(event) {
+    event.preventDefault();
+    const message = suggestion.trim();
+    if (!message) return;
+
+    const subject = encodeURIComponent("Portfolio suggestion");
+    const body = encodeURIComponent(message);
+    window.location.href = `mailto:tarekchy569@gmail.com?subject=${subject}&body=${body}`;
+    setShowExitPrompt(false);
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -370,6 +1498,7 @@ function Home() {
         const blogsData = homeData?.blogs || [];
         const youtubeData = homeData?.youtube || [];
         const researchData = homeData?.research || [];
+        const productsData = homeData?.products || [];
         const profileData = homeData?.profile || {};
 
         if (!mounted) return;
@@ -378,6 +1507,7 @@ function Home() {
         setB(Array.isArray(blogsData) ? blogsData : []);
         setV(Array.isArray(youtubeData) ? youtubeData : []);
         setResearch(Array.isArray(researchData) ? researchData : []);
+        setProducts(Array.isArray(productsData) ? productsData : []);
         setProfile(profileData || {});
       } catch (error) {
         console.error("HOME CONTENT LOAD ERROR:", error);
@@ -385,6 +1515,7 @@ function Home() {
         setB([]);
         setV([]);
         setResearch([]);
+        setProducts([]);
         setProfile({});
       }
     }
@@ -395,6 +1526,48 @@ function Home() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const handlePointer = (event) => {
+      root.style.setProperty("--pointer-x", `${event.clientX}px`);
+      root.style.setProperty("--pointer-y", `${event.clientY}px`);
+    };
+    const handleScroll = () => {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      setExploreProgress(maxScroll > 0 ? Math.min(100, Math.round((window.scrollY / maxScroll) * 100)) : 0);
+    };
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => {
+        if (entry.isIntersecting) entry.target.classList.add("is-visible");
+      }),
+      { threshold: 0.12 }
+    );
+
+    document.querySelectorAll(".revealSection, .interactiveCard").forEach((element) => observer.observe(element));
+    window.addEventListener("pointermove", handlePointer, { passive: true });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("pointermove", handlePointer);
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, [p.length, b.length, v.length, research.length, products.length]);
+
+  useEffect(() => {
+    Promise.all(
+      p.filter((project) => project.id).map(async (project) => {
+        try {
+          return [String(project.id), await api(`/projects/${project.id}/reactions`)];
+        } catch (error) {
+          console.error("PROJECT REACTIONS LOAD ERROR:", error);
+          return [String(project.id), {}];
+        }
+      })
+    ).then((entries) => setProjectReactions(Object.fromEntries(entries)));
+  }, [p]);
 
   useEffect(() => {
     const visitKey = "portfolio-visit-recorded";
@@ -436,7 +1609,57 @@ function Home() {
 
   return (
     <>
+      {showWelcome && (
+        <aside className="welcomeToast" role="status" aria-live="polite">
+          <div className="welcomeToastIcon"><Sparkles size={18} /></div>
+          <div className="welcomeToastCopy">
+            <strong>Thank you for visiting!</strong>
+            <span>Take a look around — I hope you find something useful and inspiring.</span>
+          </div>
+          <button type="button" onClick={() => setShowWelcome(false)} aria-label="Close welcome message">
+            <X size={15} />
+          </button>
+        </aside>
+      )}
+      {showExitPrompt && (
+        <div className="exitPromptBackdrop" role="presentation">
+          <section className="exitPrompt" role="dialog" aria-modal="true" aria-labelledby="exit-prompt-title">
+            <button
+              type="button"
+              className="exitPromptClose"
+              onClick={() => setShowExitPrompt(false)}
+              aria-label="Close suggestion prompt"
+            >
+              <X size={16} />
+            </button>
+            <div className="exitPromptIcon"><MessageSquare size={20} /></div>
+            <span className="sectionEyebrow">BEFORE YOU GO</span>
+            <h2 id="exit-prompt-title">Do you have a suggestion?</h2>
+            <p>Your feedback can help me make this portfolio more useful. I would love to hear it.</p>
+            <form onSubmit={sendSuggestion}>
+              <textarea
+                value={suggestion}
+                onChange={(event) => setSuggestion(event.target.value)}
+                placeholder="What could I improve or add?"
+                rows="4"
+                autoFocus
+              />
+              <div className="exitPromptActions">
+                <button type="button" className="exitPromptSkip" onClick={() => setShowExitPrompt(false)}>Maybe later</button>
+                <button type="submit" className="exitPromptSend" disabled={!suggestion.trim()}>Send suggestion <ArrowUpRight size={15} /></button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+      <div className="experienceRail" aria-label={`Portfolio exploration progress: ${exploreProgress}%`}>
+        <span style={{ height: `${exploreProgress}%` }} />
+        <strong>{String(exploreProgress).padStart(2, "0")}%</strong>
+      </div>
+
       <Nav />
+      <CommandPalette />
+      <SecretInteractions />
 
       <section className="hero premiumHero">
         <div className="heroGrid" />
@@ -447,7 +1670,8 @@ function Home() {
           <div className="heroContent">
             <div className="heroEyebrow">
               <span className="liveDot" />
-              OPEN TO LEARNING & BUILDING
+              <span>OPEN TO LEARNING & BUILDING</span>
+              <Sparkles size={13} />
             </div>
 
             <h1 className="heroTitle">
@@ -510,6 +1734,37 @@ function Home() {
                 <YT size={17} />
                 <span>YouTube</span>
               </a>
+            </div>
+
+            <a href="#about" className="explorePrompt">
+              <Compass size={15} />
+              <span>Start the journey</span>
+              <small>01 — 06</small>
+            </a>
+
+            <div className="journeyConsole">
+              <div className="journeyConsoleHeader">
+                <span><span className="consolePulse" /> TAREK OS / EXPLORATION MODE</span>
+                <span>v2.026</span>
+              </div>
+              <div className="journeyConsoleBody">
+                <div>
+                  <strong>{String(p.length).padStart(2, "0")}</strong>
+                  <span>builds</span>
+                </div>
+                <div>
+                  <strong>{String(research.length).padStart(2, "0")}</strong>
+                  <span>ideas</span>
+                </div>
+                <div>
+                  <strong>{String(v.length).padStart(2, "0")}</strong>
+                  <span>tutorials</span>
+                </div>
+              </div>
+              <div className="journeyConsoleFooter">
+                <span>MISSION: DISCOVER THE WORK</span>
+                <a href="#projects">LAUNCH <ArrowUpRight size={12} /></a>
+              </div>
             </div>
           </div>
 
@@ -650,7 +1905,7 @@ function Home() {
         </div>
       </section>
 
-      <section className="aboutSection uniqueAbout">
+      <section id="about" className="aboutSection uniqueAbout revealSection">
         <div className="aboutGrid" />
         <div className="aboutGlow aboutGlow1" />
         <div className="aboutGlow aboutGlow2" />
@@ -740,8 +1995,9 @@ function Home() {
         </div>
       </section>
 
-   
-<Block id="projects" num="01" title="Things I've built.">
+      <SkillsConstellation />
+
+<Block id="projects" num="02" title="Things I've built.">
 
   <div className="projectsIntro">
     <p>
@@ -755,21 +2011,14 @@ function Home() {
   <div className="projectsGrid">
 
     {p.slice(0, 6).map((x, i) => {
-
-      const linkUrl = x.liveUrl || x.github || null;
+      const projectRouteId = getContentRouteId(x);
 
       return (
-        <a
+        <Link
           className="projectCard"
           key={x.id || x.title || i}
-          href={linkUrl || "#"}
-          target={linkUrl ? "_blank" : undefined}
-          rel={linkUrl ? "noopener noreferrer" : undefined}
-          onClick={(e) => {
-            if (!linkUrl) {
-              e.preventDefault();
-            }
-          }}
+          style={{ "--project-index": i }}
+          to={`/projects/${encodeURIComponent(projectRouteId)}`}
         >
 
           {/* PROJECT IMAGE */}
@@ -838,11 +2087,25 @@ function Home() {
 
             </div>
 
+            <ReactionButtons
+              resource="projects"
+              productId={x.id}
+              value={projectReactions[String(x.id)]}
+              onChange={(data) =>
+                setProjectReactions((current) => ({
+                  ...current,
+                  [String(x.id)]: data,
+                }))
+              }
+              onError={(message) => console.error("PROJECT REACTION ERROR:", message)}
+            />
+
             {/* PROJECT LINKS */}
             <div className="projectLinks">
 
               {x.liveUrl && (
                 <span
+                  className="projectLink live"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -859,6 +2122,7 @@ function Home() {
 
               {x.github && (
                 <span
+                  className="projectLink github"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -877,7 +2141,7 @@ function Home() {
 
           </div>
 
-        </a>
+        </Link>
       );
 
     })}
@@ -886,7 +2150,9 @@ function Home() {
 
 </Block>
 
-      <Block id="university" num="02" title="My university archive.">
+      <ProcessTimeline />
+
+      <Block id="university" num="04" title="My university archive.">
 
   <div className="universityArchive">
 
@@ -954,7 +2220,7 @@ function Home() {
 
 </Block>
 
-<Block id="research" num="03" title="Exploring before I specialize.">
+<Block id="research" num="05" title="Exploring before I specialize.">
 
   <div className="researchIntro">
     <div className="researchLabel">
@@ -988,7 +2254,7 @@ function Home() {
       href={x.link || "#"}
       target={x.link ? "_blank" : undefined}
       rel={x.link ? "noreferrer" : undefined}
-      className="researchCard"
+      className="researchCard interactiveCard"
       onClick={(e) => {
         if (!x.link) {
           e.preventDefault();
@@ -1035,7 +2301,7 @@ function Home() {
 
 </Block>
 
-      <Block id="blog" num="04" title="What I'm learning, documented.">
+      <Block id="blog" num="06" title="What I'm learning, documented.">
 
   <div className="blogSectionIntro">
     <div className="blogSectionLabel">
@@ -1058,11 +2324,13 @@ function Home() {
           ? x.coverImage
           : `${API_BASE.replace("/api", "")}${x.coverImage}`
         : null;
+      const linkUrl = x.liveUrl || x.github || null;
+      const isExternal = Boolean(linkUrl);
 
 
       return (
         <article
-          className={`projectCard ${isExternal ? 'clickable' : ''}`}
+          className={`projectCard interactiveCard ${isExternal ? 'clickable' : ''}`}
           key={getId(x) || `${x.title}-${i}`}
           onClick={() => {
             if (isExternal) {
@@ -1168,9 +2436,13 @@ function Home() {
   )}
 </Block>
 
+      <ProjectLab />
+      <ChooseYourPath projects={p} blogs={b} videos={v} research={research} />
+      <DigitalStore products={products} />
+      <Guestbook />
 
 
-<Block id="youtube" num="05" title="Build with me.">
+<Block id="youtube" num="08" title="Build with me.">
 
   <div className="cards">
 
@@ -1349,7 +2621,7 @@ function Home() {
 
         <div className="contactContainer">
           <div className="contactHeader">
-            <span className="sectionEyebrow">06 / CONTACT</span>
+            <span className="sectionEyebrow">09 / CONTACT</span>
 
             <h2>
               Let's build something
@@ -1564,7 +2836,7 @@ function Home() {
 
 function Block({ id, num, title, children }) {
   return (
-    <section id={id} className="section dark">
+    <section id={id} className="section dark revealSection">
       <div className="container">
         <small>
           {num} / {id}
@@ -1685,6 +2957,7 @@ const res = [
   ["blogs", "Blog", FileText],
   ["youtube", "YouTube", Video],
   ["experiments", "Experiments", FlaskConical],
+  ["products", "Digital Store", ShoppingBag],
 ];
 
 /* =========================================================
@@ -1695,12 +2968,81 @@ const res = [
    ADMIN - FIXED
 ========================================================= */
 
+function VisitorInsights({ insights }) {
+  if (!insights) return null;
+  const list = (values) => values?.length ? values.map((item) => (
+    <li key={item.label}><span title={item.label}>{item.label}</span><strong>{item.count}</strong></li>
+  )) : <li className="insightsEmpty">No data yet</li>;
+
+  return (
+    <section className="visitorInsights" aria-labelledby="visitor-insights-title">
+      <div className="insightsHeader">
+        <div><small>TELEMETRY / LAST 7 DAYS</small><h2 id="visitor-insights-title">What visitors explored</h2></div>
+        <div className="insightsPulse"><strong>{insights.last7Days || 0}</strong><span>visits · {insights.uniqueLast7Days || 0} unique</span></div>
+      </div>
+      <div className="insightsGrid">
+        <div><h3>Top pages</h3><ol>{list(insights.topPages)}</ol></div>
+        <div><h3>Referrers</h3><ol>{list(insights.topReferrers)}</ol></div>
+      </div>
+    </section>
+  );
+}
+
+function GuestbookModeration({ items, onChange }) {
+  const [busy, setBusy] = useState("");
+  async function moderate(id, status) {
+    setBusy(`${id}-${status}`);
+    try {
+      await api(`/admin/guestbook/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+      await onChange();
+    } catch (error) {
+      alert(error.message || "Could not update guestbook entry.");
+    } finally {
+      setBusy("");
+    }
+  }
+  async function remove(id) {
+    if (!confirm("Delete this guestbook entry permanently?")) return;
+    setBusy(`${id}-delete`);
+    try {
+      await api(`/admin/guestbook/${id}`, { method: "DELETE" });
+      await onChange();
+    } catch (error) {
+      alert(error.message || "Could not delete guestbook entry.");
+    } finally {
+      setBusy("");
+    }
+  }
+
+  return (
+    <div className="guestbookAdminList">
+      <p className="adminHint">Approve thoughtful notes to publish them publicly. Rejected notes remain private for your audit trail.</p>
+      {!items.length && <div className="note">No guestbook submissions yet.</div>}
+      {items.map((entry) => (
+        <article className={`guestbookAdminRow status-${entry.status}`} key={entry.id}>
+          <div className="guestbookAdminCopy">
+            <div><strong>{entry.name}</strong><span>{entry.role || "Visitor"}</span><em>{entry.status}</em></div>
+            <p>{entry.message}</p>
+            <small>{new Date(entry.created_at).toLocaleString()}</small>
+          </div>
+          <div className="guestbookAdminActions">
+            {entry.status !== "approved" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "approved")}>{busy === `${entry.id}-approved` ? "..." : "Approve"}</button>}
+            {entry.status !== "rejected" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "rejected")}>{busy === `${entry.id}-rejected` ? "..." : "Reject"}</button>}
+            {entry.status !== "pending" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "pending")}>Pending</button>}
+            <button type="button" className="danger" disabled={!!busy} onClick={() => remove(entry.id)}>{busy === `${entry.id}-delete` ? "..." : "Delete"}</button>
+          </div>
+        </article>
+      ))}
+    </div>
+  );
+}
 function Admin() {
   const nav = useNavigate();
 
   const [tab, setTab] = useState("dashboard");
   const [items, setItems] = useState([]);
   const [stats, setStats] = useState({});
+  const [visitorInsights, setVisitorInsights] = useState(null);
   const [edit, setEdit] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -1712,8 +3054,12 @@ function Admin() {
       setError("");
 
       if (tab === "dashboard") {
-        const data = await api("/admin/stats");
+        const [data, insights] = await Promise.all([
+          api("/admin/stats"),
+          api("/admin/visitor-insights"),
+        ]);
         setStats(data || {});
+        setVisitorInsights(insights || null);
         console.log("📊 Stats loaded:", data);
       } else if (tab !== "profile") {
         const data = await api(
@@ -1777,6 +3123,17 @@ function Admin() {
           <Users />
           Visitors
         </button>
+        <button
+          type="button"
+          className={tab === "guestbook" ? "on" : ""}
+          onClick={() => {
+            setTab("guestbook");
+            setEdit(null);
+          }}
+        >
+          <MessageSquare />
+          Guestbook
+        </button>
 
         {res.map(([resource, name, Icon]) => (
           <button
@@ -1826,12 +3183,14 @@ function Admin() {
                 ? "Profile"
                 : tab === "visitors"
                 ? "Visitors"
+                : tab === "guestbook"
+                ? "Guestbook"
                 : res.find((x) => x[0] === tab)?.[1]}
             </h1>
             {error && <div className="error" style={{color: 'red'}}>{error}</div>}
           </div>
 
-          {tab !== "dashboard" && tab !== "profile" && tab !== "visitors" && (
+          {tab !== "dashboard" && tab !== "profile" && tab !== "visitors" && tab !== "guestbook" && (
             <button
               type="button"
               className="btn main"
@@ -1848,29 +3207,34 @@ function Admin() {
         )}
 
         {tab === "dashboard" ? (
-          <div className="adminstats">
-            <div>
-              <Users />
-              <b>{stats.uniqueVisitors || 0}</b>
-              <small>Unique visitors</small>
-            </div>
-            <div>
-              <Users />
-              <b>{stats.visits || 0}</b>
-              <small>Total visits</small>
-            </div>
-            {res.map(([resource, name, Icon]) => (
-              <div key={resource}>
-                <Icon />
-                <b>{stats[resource] || 0}</b>
-                <small>{name}</small>
+          <>
+            <div className="adminstats">
+              <div>
+                <Users />
+                <b>{stats.uniqueVisitors || 0}</b>
+                <small>Unique visitors</small>
               </div>
-            ))}
-          </div>
+              <div>
+                <Users />
+                <b>{stats.visits || 0}</b>
+                <small>Total visits</small>
+              </div>
+              {res.map(([resource, name, Icon]) => (
+                <div key={resource}>
+                  <Icon />
+                  <b>{stats[resource] || 0}</b>
+                  <small>{name}</small>
+                </div>
+              ))}
+            </div>
+            <VisitorInsights insights={visitorInsights} />
+          </>
         ) : tab === "profile" ? (
           <Profile />
         ) : tab === "visitors" ? (
           <VisitorList items={items} />
+        ) : tab === "guestbook" ? (
+          <GuestbookModeration items={items} onChange={loadData} />
         ) : (
           <Manager
             r={tab}
@@ -1889,6 +3253,75 @@ function Admin() {
 function VisitorList({ items }) {
   if (!items.length) {
     return <div className="note">No visits recorded yet.</div>;
+  }
+
+  function VisitorInsights({ insights }) {
+    if (!insights) return null;
+    const list = (values) => values?.length ? values.map((item) => (
+      <li key={item.label}><span title={item.label}>{item.label}</span><strong>{item.count}</strong></li>
+    )) : <li className="insightsEmpty">No data yet</li>;
+
+    return (
+      <section className="visitorInsights" aria-labelledby="visitor-insights-title">
+        <div className="insightsHeader">
+          <div><small>TELEMETRY / LAST 7 DAYS</small><h2 id="visitor-insights-title">What visitors explored</h2></div>
+          <div className="insightsPulse"><strong>{insights.last7Days || 0}</strong><span>visits · {insights.uniqueLast7Days || 0} unique</span></div>
+        </div>
+        <div className="insightsGrid">
+          <div><h3>Top pages</h3><ol>{list(insights.topPages)}</ol></div>
+          <div><h3>Referrers</h3><ol>{list(insights.topReferrers)}</ol></div>
+        </div>
+      </section>
+    );
+  }
+
+  function GuestbookModeration({ items, onChange }) {
+    const [busy, setBusy] = useState("");
+    async function moderate(id, status) {
+      setBusy(`${id}-${status}`);
+      try {
+        await api(`/admin/guestbook/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+        await onChange();
+      } catch (error) {
+        alert(error.message || "Could not update guestbook entry.");
+      } finally {
+        setBusy("");
+      }
+    }
+    async function remove(id) {
+      if (!confirm("Delete this guestbook entry permanently?")) return;
+      setBusy(`${id}-delete`);
+      try {
+        await api(`/admin/guestbook/${id}`, { method: "DELETE" });
+        await onChange();
+      } catch (error) {
+        alert(error.message || "Could not delete guestbook entry.");
+      } finally {
+        setBusy("");
+      }
+    }
+
+    return (
+      <div className="guestbookAdminList">
+        <p className="adminHint">Approve thoughtful notes to publish them publicly. Rejected notes remain private for your audit trail.</p>
+        {!items.length && <div className="note">No guestbook submissions yet.</div>}
+        {items.map((entry) => (
+          <article className={`guestbookAdminRow status-${entry.status}`} key={entry.id}>
+            <div className="guestbookAdminCopy">
+              <div><strong>{entry.name}</strong><span>{entry.role || "Visitor"}</span><em>{entry.status}</em></div>
+              <p>{entry.message}</p>
+              <small>{new Date(entry.created_at).toLocaleString()}</small>
+            </div>
+            <div className="guestbookAdminActions">
+              {entry.status !== "approved" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "approved")}>{busy === `${entry.id}-approved` ? "..." : "Approve"}</button>}
+              {entry.status !== "rejected" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "rejected")}>{busy === `${entry.id}-rejected` ? "..." : "Reject"}</button>}
+              {entry.status !== "pending" && <button type="button" disabled={!!busy} onClick={() => moderate(entry.id, "pending")}>Pending</button>}
+              <button type="button" className="danger" disabled={!!busy} onClick={() => remove(entry.id)}>{busy === `${entry.id}-delete` ? "..." : "Delete"}</button>
+            </div>
+          </article>
+        ))}
+      </div>
+    );
   }
 
   return (
@@ -1937,7 +3370,7 @@ function Manager({ r, items, setItems, edit, setEdit, loadData }) {
       delete cleanData.updated_at;
       
       // Ensure tech/tags are arrays
-      ['tech', 'tags', 'technology'].forEach(key => {
+      ['tech', 'tags', 'technology', 'features'].forEach(key => {
         if (cleanData[key]) {
           if (typeof cleanData[key] === 'string') {
             cleanData[key] = cleanData[key].split(',').map(t => t.trim()).filter(Boolean);
@@ -2195,6 +3628,21 @@ function ImageDropzone({
   );
 }
 
+async function uploadPdfFile(file) {
+  if (!file || file.type !== "application/pdf") throw new Error("Please select a PDF file.");
+  if (file.size > 25 * 1024 * 1024) throw new Error("PDF must be smaller than 25MB.");
+  const formData = new FormData(); formData.append("image", file);
+  const token = localStorage.getItem("token");
+  const response = await fetch(`${API_BASE}/upload`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || "PDF upload failed.");
+  return data.url || data.imageUrl || "";
+}
+function PdfDropzone({ value, onChange }) {
+  const [uploading, setUploading] = useState(false); const [error, setError] = useState("");
+  async function choose(file) { if (!file) return; setError(""); setUploading(true); try { onChange(await uploadPdfFile(file)); } catch (err) { setError(err.message || "PDF upload failed."); } finally { setUploading(false); } }
+  return <div className="pdfDropzone"><label>BOOK PDF FILE<input type="file" accept="application/pdf,.pdf" onChange={(event) => choose(event.target.files?.[0])} /></label><span>{uploading ? "Uploading PDF..." : value ? "PDF uploaded successfully" : "Choose a PDF (max 25MB)"}</span>{value && <a href={getImageUrl(value)} target="_blank" rel="noreferrer">Open uploaded PDF</a>}{error && <small>{error}</small>}</div>;
+}
 /* =========================================================
    MANAGER - FIXED VERSION
 ========================================================= */
@@ -2251,6 +3699,8 @@ function Editor({ r, data, save, cancel, saving }) {
     fields = ["title", "description", "icon", "link", "status"];
   } else if (r === "youtube") {
     fields = ["title", "youtubeUrl", "description", "category"];
+  } else if (r === "products") {
+    fields = ["title", "description", "productType", "framework", "downloadType", "price", "currency", "checkoutUrl", "freeDownloadUrl", "previewUrl", "features"];
   } else if (r === "university") {
     fields = ["title", "course", "semester", "type", "description", "fileUrl", "github", "liveUrl"];
   } else {
@@ -2262,7 +3712,7 @@ function Editor({ r, data, save, cancel, saving }) {
 
     const d = { ...f };
 
-    ["tech", "tags", "technology"].forEach((key) => {
+    ["tech", "tags", "technology", "features"].forEach((key) => {
       if (key in d) {
         if (typeof d[key] === "string") {
           d[key] = d[key]
@@ -2339,6 +3789,33 @@ function Editor({ r, data, save, cancel, saving }) {
             );
           }
 
+          if (key === "downloadType" && r === "products") {
+            return (
+              <label key={key}>
+                Download access
+                <select value={f[key] || "free"} onChange={(event) => set(key, event.target.value)}>
+                  <option value="free">Free download</option>
+                  <option value="paid">Paid purchase</option>
+                </select>
+              </label>
+            );
+          }
+
+          if (key === "framework" && r === "products") {
+            return (
+              <label key={key}>
+                Theme framework
+                <select value={f[key] || "React"} onChange={(event) => set(key, event.target.value)}>
+                  <option value="React">React</option>
+                  <option value="Next.js">Next.js</option>
+                  <option value="HTML / CSS">HTML / CSS</option>
+                  <option value="Vue">Vue</option>
+                  <option value="WordPress">WordPress</option>
+                </select>
+              </label>
+            );
+          }
+
           return (
             <label key={key}>
               {key}
@@ -2371,7 +3848,24 @@ function Editor({ r, data, save, cancel, saving }) {
             />
           </div>
         )}
+        {r === "products" && String(f.productType || "").toLowerCase().includes("book") && (
+          <div className="bookUploadPanel">
+            <strong>BOOK DOWNLOAD FILE</strong>
+            <span>Upload the PDF that visitors will download.</span>
+            <PdfDropzone value={f.pdfUrl || f.freeDownloadUrl || ""} onChange={(value) => { set("pdfUrl", value); set("freeDownloadUrl", value); }} />
+          </div>
+        )}
 
+        {r === "products" && (
+          <div className="image-field">
+            <small>PRODUCT COVER IMAGE</small>
+            <ImageDropzone
+              inputId="product-image"
+              value={f.image || ""}
+              onChange={(value) => set("image", value)}
+            />
+          </div>
+        )}
         <label>
           Status
           <select
@@ -2524,6 +4018,123 @@ function Profile() {
         {saving ? "Saving..." : "Save profile"}
       </button>
     </form>
+  );
+}
+
+/* =========================================================
+   PROJECT DETAILS
+========================================================= */
+
+function ProjectDetails() {
+  const { id } = useParams();
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProject() {
+      try {
+        const projects = await api("/projects");
+        const list = Array.isArray(projects) ? projects : [];
+        const found = list.find((item) => (
+          String(getId(item)) === String(id) ||
+          getContentRouteId(item) === decodeURIComponent(String(id))
+        ));
+
+        if (!mounted) return;
+        if (!found) {
+          setError("Project case study not found.");
+        } else {
+          setProject(found);
+        }
+      } catch (loadError) {
+        console.error("PROJECT LOAD ERROR:", loadError);
+        if (mounted) setError("Failed to load this project.");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    loadProject();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="projectDetailsLoading">
+        <div className="loadingSpinner" />
+        <p>Loading case study…</p>
+      </div>
+    );
+  }
+
+  if (error || !project) {
+    return (
+      <div className="projectDetailsLoading">
+        <h1>{error || "Project not found"}</h1>
+        <Link to="/">← Back to portfolio</Link>
+      </div>
+    );
+  }
+
+  const image = getImageUrl(project.image);
+  const details = project.details && typeof project.details === "object" ? project.details : {};
+  const tech = Array.isArray(project.tech) ? project.tech : [];
+  const features = Array.isArray(project.features)
+    ? project.features
+    : Array.isArray(details.features)
+      ? details.features
+      : tech;
+  const challenge = project.challenge || details.challenge || "Turning an idea into a dependable, useful experience.";
+  const solution = project.solution || details.solution || project.description || "A focused build shaped by iteration, feedback and practical constraints.";
+  const outcome = project.outcome || details.outcome || project.result || "A working project that made the next question easier to explore.";
+
+  return (
+    <div className="projectDetailsPage">
+      <header className="projectDetailsNav">
+        <Link to="/" className="detailBack"><ArrowLeft size={16} /> Back to portfolio</Link>
+        <span className="detailCode">CASE STUDY / {String(getId(project)).padStart(2, "0")}</span>
+      </header>
+      <main>
+        <section className="projectDetailsHero">
+          <div className="projectDetailsHeroCopy">
+            <span className="sectionEyebrow">{project.category || "PROJECT"} / CASE STUDY</span>
+            <h1>{project.title}</h1>
+            <p>{project.description || "A project built while learning by doing."}</p>
+            <div className="projectDetailsActions">
+              {project.liveUrl && <a href={project.liveUrl} target="_blank" rel="noreferrer">Live demo <ExternalLink size={15} /></a>}
+              {project.github && <a href={project.github} target="_blank" rel="noreferrer">Source code <Github size={15} /></a>}
+            </div>
+          </div>
+          <div className="projectDetailsVisual">
+            {image ? <img src={image} alt={project.title} /> : <div className="projectDetailPlaceholder"><Code2 size={52} /></div>}
+          </div>
+        </section>
+
+        <section className="projectDetailsBody">
+          <div className="projectDetailsMeta">
+            <div><small>ROLE</small><strong>{project.role || "Builder & researcher"}</strong></div>
+            <div><small>YEAR</small><strong>{project.year || formatDate(project.created_at) || "Ongoing"}</strong></div>
+            <div><small>STACK</small><strong>{tech.length ? tech.join(" · ") : "Exploration in progress"}</strong></div>
+          </div>
+          <div className="caseStudyGrid">
+            <article><span>01 / THE CHALLENGE</span><h2>Start with a real problem.</h2><p>{challenge}</p></article>
+            <article><span>02 / THE APPROACH</span><h2>Make the next step tangible.</h2><p>{solution}</p></article>
+            <article><span>03 / THE OUTCOME</span><h2>Leave room to keep learning.</h2><p>{outcome}</p></article>
+          </div>
+          {!!features.length && (
+            <div className="caseStudyFeatures">
+              <span>BUILD NOTES</span>
+              <div>{features.map((feature, index) => <span key={`${feature}-${index}`}>{feature}</span>)}</div>
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   );
 }
 
@@ -2780,6 +4391,8 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
+      <Route path="/store" element={<StorePage />} />
+      <Route path="/projects/:id" element={<ProjectDetails />} />
       <Route path="/blog/:id" element={<BlogDetails />} />
       <Route path="/admin/login" element={<Login />} />
       <Route
@@ -2802,7 +4415,9 @@ function App() {
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <App />
+    <ReactionProvider>
+      <App />
+    </ReactionProvider>
 
   </BrowserRouter>
 );
